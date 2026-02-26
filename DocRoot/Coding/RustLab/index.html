@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RustLab IDE</title>
+  <link rel="stylesheet" href="../NativeLabShared/css/styles.css" />
+</head>
+<body>
+  <main class="ide">
+    <header class="topbar">
+      <div class="brand">🦀 RustLab IDE</div>
+      <div class="top-actions">
+        <button id="newFileBtn" type="button">새 파일</button>
+        <button id="openFileBtn" type="button">열기</button>
+        <button id="saveFileBtn" type="button">저장</button>
+        <button id="sampleBtn" type="button">예제</button>
+        <button id="runBtn" type="button" class="primary">실행 안내</button>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-title">탐색기</div>
+        <ul class="file-tree" id="fileTree"><li>main.rs</li></ul>
+      </aside>
+
+      <section class="mainpane">
+        <div class="editor-tabs">
+          <div class="tab" id="tabName">main.rs</div>
+          <button id="clearCodeBtn" type="button">코드 지우기</button>
+        </div>
+
+        <div class="editor-wrap">
+          <pre id="lineNumbers" class="line-numbers">1</pre>
+          <textarea id="codeEditor" spellcheck="false"></textarea>
+        </div>
+
+        <section class="terminal-panel">
+          <div class="terminal-header">
+            <span>터미널 / 출력</span>
+            <button id="clearOutputBtn" type="button">지우기</button>
+          </div>
+          <pre id="output"></pre>
+        </section>
+      </section>
+    </section>
+
+    <footer class="statusbar">
+      <span id="status">준비 중...</span>
+      <span id="cursorInfo">Ln 1, Col 1</span>
+    </footer>
+
+    <input id="fileInput" type="file" accept=".rs,text/plain" hidden />
+  </main>
+
+  <script>
+    window.labConfig = {
+      language: 'Rust',
+      extension: '.rs',
+      fileName: 'main.rs',
+      command: 'rustc main.rs && ./main',
+      sampleCode: `fn main() {
+  println!("Hello, RustLab");
+}`
+    };
+  </script>
+  <script src="../NativeLabShared/js/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,888 @@
+:root {
+  --bg: #f3f7f4;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --muted: #4b5563;
+  --line: #e2e8f0;
+  --green: #1b9c6f;
+  --blue: #2a71d0;
+  --amber: #d1841b;
+  --accent: linear-gradient(135deg, #d6f0ff 0%, #e7ffe8 100%);
+  --shadow-soft: 0 15px 40px rgba(15, 23, 42, 0.12);
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  width: min(1200px, 92vw);
+  margin: 0 auto;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0;
+}
+
+.brand {
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.nav-links a {
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-links a:hover {
+  background: #e6f1ff;
+  color: #0b4fa6;
+}
+
+.nav-links .cta {
+  background: var(--ink);
+  color: #f8fafc;
+  padding: 10px 16px;
+}
+
+.hero {
+  padding: 72px 0 60px;
+  background: radial-gradient(120% 120% at 10% 20%, #e4f4ff 0%, rgba(228, 244, 255, 0) 45%),
+    radial-gradient(90% 90% at 90% 20%, #e9ffe9 0%, rgba(233, 255, 233, 0) 45%),
+    #f9fbff;
+  border-bottom: 1px solid var(--line);
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.hero-copy h1 {
+  font-size: clamp(32px, 4vw, 44px);
+  line-height: 1.15;
+  margin: 8px 0 16px;
+}
+
+.lede {
+  color: var(--muted);
+  max-width: 620px;
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #0b4fa6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 13px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hero-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 14px;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f5f7fb;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.stat .label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stat .value {
+  color: var(--ink);
+}
+
+.tip {
+  background: var(--accent);
+  padding: 14px;
+  border-radius: 14px;
+  font-weight: 600;
+  color: #0b4a3d;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+
+.btn.primary {
+  background: var(--ink);
+  color: #f8fafc;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+}
+
+.btn.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.22);
+}
+
+.btn.ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.section {
+  padding: 72px 0;
+  background: var(--bg);
+}
+
+.section-muted {
+  background: #eef3f7;
+}
+
+.section-head {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 28px;
+}
+
+.section-head h2 {
+  font-size: clamp(24px, 3vw, 32px);
+}
+
+.section-desc {
+  color: var(--muted);
+  max-width: 680px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.meta {
+  color: var(--muted);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tags span {
+  background: #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.pill.green { background: rgba(27, 156, 111, 0.15); }
+.pill.blue { background: rgba(42, 113, 208, 0.15); }
+.pill.amber { background: rgba(209, 132, 27, 0.15); }
+
+.trail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.trail-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 10px;
+}
+
+.trail-actions {
+  display: none;
+  justify-content: flex-end;
+}
+
+.trail-card:hover .trail-actions {
+  display: flex;
+}
+
+.trail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.distance {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.bullet-list {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.bullet-list li::before {
+  content: '•';
+  margin-right: 8px;
+  color: #0b4fa6;
+  font-weight: 700;
+}
+
+/* 산책로 업로드 폼 */
+.trail-upload {
+  margin-bottom: 18px;
+}
+
+.trail-form {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+}
+
+.trail-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.trail-field {
+  display: grid;
+  gap: 6px;
+}
+
+.trail-field label {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.trail-field input,
+.trail-field select,
+.trail-field textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+}
+
+.trail-field textarea {
+  resize: vertical;
+}
+
+.trail-form-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.trail-auth {
+  margin-bottom: 12px;
+}
+
+.auth-form-light {
+  background: var(--card);
+}
+
+#auth-status {
+  color: var(--muted);
+}
+
+/* 인증 게이트 오버레이 */
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.auth-gate-panel {
+  width: min(680px, 92vw);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22);
+  display: grid;
+  gap: 12px;
+}
+
+body.locked header,
+body.locked main,
+body.locked footer {
+  filter: blur(2px);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 프로필 카드 */
+.profile-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+}
+
+.profile-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.profile-card .label {
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.profile-card .value {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.checklist {
+  display: grid;
+  gap: 18px;
+}
+
+.checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.check-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 10px;
+}
+
+.check-list {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.check-list li::before {
+  content: '✔';
+  color: #1b9c6f;
+  margin-right: 8px;
+  font-weight: 800;
+}
+
+.section-muted .event-list {
+  display: grid;
+  gap: 12px;
+}
+
+.event {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.event h3 {
+  margin: 4px 0;
+}
+
+.contact {
+  display: grid;
+  gap: 14px;
+}
+
+.contact-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 10px;
+}
+
+.contact-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.micro-copy {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* 주변 공원 지도 섹션 */
+.locator-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 18px;
+  margin: 0;
+}
+
+.map-card,
+.nearby-list-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.map-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.map-controls input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  font-size: 15px;
+}
+
+.map-controls input:focus {
+  outline: 2px solid #cde4ff;
+  border-color: #99c9ff;
+  background: #ffffff;
+}
+
+.map-controls button {
+  white-space: nowrap;
+}
+
+.map-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#park-map {
+  width: 100%;
+  min-height: 320px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+#park-map .leaflet-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.nearby-list {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nearby-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.nearby-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.btn-mini {
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 10px;
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 28px 0;
+}
+
+@media (max-width: 768px) {
+  /* 전체 톤을 새로 적용: 밝은 베이지 배경과 플랫 카드 */
+  :root {
+    --bg: #f8f1e7;
+    --card: #ffffff;
+    --ink: #1c1c28;
+    --muted: #666276;
+    --line: #e6dccd;
+    --blue: #2a71d0;
+    --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.08);
+    --radius: 14px;
+  }
+
+  html,
+  body {
+    background: var(--bg);
+  }
+
+  .container {
+    width: 100vw;
+    padding: 0 10px;
+  }
+
+  .site-header {
+    position: static;
+    background: transparent;
+    border: none;
+    padding-bottom: 8px;
+  }
+
+  .nav-bar {
+    padding: 14px 0;
+  }
+
+  .nav-links {
+    gap: 10px;
+    font-size: 12px;
+  }
+
+  .hero {
+    padding: 24px 0 18px;
+    background: linear-gradient(180deg, #fdf7ef 0%, #f6edde 100%);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .hero-copy h1 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .lede {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-card {
+    border: 1px solid var(--line);
+    box-shadow: none;
+    border-radius: 14px;
+    background: #fffdf9;
+  }
+
+  /* 레이아웃: 전부 단일 컬럼, 카드 마진 여유 */
+  .locator-grid,
+  .trail-form-row,
+  .profile-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .map-card,
+  .nearby-list-card,
+  .trail-upload,
+  .profile-card {
+    padding: 12px;
+    border: 1px solid var(--line);
+    box-shadow: none;
+    background: #fffdf9;
+  }
+
+  /* 지도 높이 및 컨트롤 배치 */
+  .map-controls {
+    grid-template-columns: minmax(100px, auto) 1fr minmax(80px, auto);
+    gap: 4px;
+    align-items: center;
+  }
+
+  .map-controls input {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+
+  .map-controls button {
+    padding: 7px 9px;
+    font-size: 11px;
+    width: 100%;
+  }
+
+  .map-actions {
+    gap: 10px;
+  }
+
+  #park-map {
+    min-height: 180px;
+    max-width: 100%;
+    border-radius: 12px;
+  }
+
+  #park-map .leaflet-container {
+    min-height: 180px;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .nearby-list {
+    max-height: 220px;
+  }
+
+  /* 버튼 & 입력 크기 축소 */
+  .btn {
+    padding: 6px 8px;
+    border-radius: 9px;
+    font-size: 12px;
+    box-shadow: none;
+  }
+
+  .btn.primary {
+    box-shadow: none;
+  }
+
+  /* 섹션 패딩 및 폰트 스케일 */
+  .section {
+    padding: 28px 0;
+  }
+
+  .section-head h2 {
+    font-size: 16px;
+  }
+
+  .section-desc {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .micro-copy {
+    font-size: 10px;
+  }
+
+  /* 프로필/트레일 폼 여백 조정 */
+  .trail-form-actions,
+  .profile-form .trail-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .trail-form-actions .btn,
+  .map-controls .btn,
+  .profile-form .btn {
+    width: 100%;
+  }
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.footer-copy {
+  color: #cbd5e1;
+  margin-top: 6px;
+}
+
+.footer-links {
+  display: grid;
+  gap: 6px;
+}
+
+.footer-links .label {
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.footer-links a {
+  color: #e2e8f0;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 960px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .locator-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .card-top,
+  .trail-head,
+  .event {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLab IDE</title>
+  <link rel="stylesheet" href="../NativeLabShared/css/styles.css" />
+</head>
+<body>
+  <main class="ide">
+    <header class="topbar">
+      <div class="brand">🧩 CLab IDE</div>
+      <div class="top-actions">
+        <button id="newFileBtn" type="button">새 파일</button>
+        <button id="openFileBtn" type="button">열기</button>
+        <button id="saveFileBtn" type="button">저장</button>
+        <button id="sampleBtn" type="button">예제</button>
+        <button id="runBtn" type="button" class="primary">실행 ▶</button>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-title">탐색기</div>
+        <ul class="file-tree" id="fileTree">
+          <li class="active">main.c</li>
+        </ul>
+      </aside>
+
+      <section class="mainpane">
+        <div class="editor-tabs">
+          <div class="tab active" id="tabName">main.c</div>
+          <button id="clearCodeBtn" type="button">코드 지우기</button>
+        </div>
+
+        <div class="editor-wrap">
+          <pre id="lineNumbers" class="line-numbers">1</pre>
+            <textarea id="codeEditor" spellcheck="false">#include <stdio.h>
+
+      int main() {
+        int a = 0;
+        int b = 0;
+
+        printf("두 정수를 입력하세요 (예: 3 5): ");
+        scanf("%d %d", &a, &b);
+
+        printf("첫 번째: %d\n", a);
+        printf("두 번째: %d\n", b);
+        printf("합: %d\n", a + b);
+        printf("곱: %d\n", a * b);
+        return 0;
+      }</textarea>
+        </div>
+
+        <section class="terminal-panel">
+          <div class="terminal-header">
+            <span>터미널 / 출력</span>
+            <button id="clearOutputBtn" type="button">지우기</button>
+          </div>
+          <pre id="output"></pre>
+        </section>
+      </section>
+    </section>
+
+    <footer class="statusbar">
+      <span id="status">준비 완료. C 코드를 실행해보세요.</span>
+      <span id="cursorInfo">Ln 1, Col 1</span>
+    </footer>
+
+    <input id="fileInput" type="file" accept=".c,.h,text/plain" hidden />
+  </main>
+
+  <script src="js/app.js" defer></script>
+</body>
+</html>

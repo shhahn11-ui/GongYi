@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TodoShare - 리스트 공유</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <nav class="container">
+      <div class="logo">📋 TodoShare</div>
+      <button class="hamburger-menu" id="hamburgerBtn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <ul class="nav-menu" id="navMenu"></ul>
+    </nav>
+  </header>
+
+  <main class="container main-content">
+    <h1 class="page-title">🌟 공유된 투두 리스트</h1>
+
+    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button class="btn" id="openUploadBtn">업로드</button>
+      <button class="btn btn-secondary" id="cancelUploadBtn" style="display: none;">닫기</button>
+    </div>
+
+    <div id="uploadForm" style="display: none; margin-bottom: 1.5rem; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">
+      <div class="form-group">
+        <label for="shareTitle">제목</label>
+        <input type="text" id="shareTitle" placeholder="예: 아침 루틴 체크리스트" required>
+      </div>
+
+      <div class="form-group">
+        <label>리스트 항목</label>
+        <div id="itemsContainer" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div class="item-row share-item-row">
+            <input type="text" class="share-item" placeholder="항목을 입력하세요" required>
+            <select class="share-item-category" required>
+              <option value="">카테고리</option>
+              <option value="건강">건강</option>
+              <option value="공부">공부</option>
+              <option value="헬스">헬스</option>
+              <option value="일">일</option>
+              <option value="취미">취미</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="addItemBtn" type="button" style="margin-top: 0.5rem;">항목 추가</button>
+      </div>
+
+      <div class="form-group">
+        <label for="shareCategory">카테고리</label>
+        <select id="shareCategory" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; background: #fff; font-size: 0.95rem; appearance: none;">
+          <option value="">카테고리 선택</option>
+          <option value="건강">건강</option>
+          <option value="공부">공부</option>
+          <option value="헬스">헬스</option>
+          <option value="일">일</option>
+          <option value="취미">취미</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+
+      <button class="btn" id="submitShareBtn" type="button">제출</button>
+      <div id="uploadStatus" style="margin-top: 0.5rem; font-size: 0.95rem; color: #666;"></div>
+    </div>
+
+    <div class="todo-section">
+      <div class="category-filter">
+        <button class="category-btn active" data-category="">전체</button>
+        <button class="category-btn" data-category="건강">건강</button>
+        <button class="category-btn" data-category="공부">공부</button>
+        <button class="category-btn" data-category="헬스">헬스</button>
+        <button class="category-btn" data-category="일">일</button>
+        <button class="category-btn" data-category="취미">취미</button>
+        <button class="category-btn" data-category="기타">기타</button>
+      </div>
+
+      <div class="leaderboard" style="margin-top: 1rem;">
+        <div class="leaderboard-header">
+          <div>
+            <div class="leaderboard-label">🔥 랭킹</div>
+            <h2 class="leaderboard-title">Top 10 플레이어</h2>
+          </div>
+          <button class="btn btn-secondary" id="refreshLeaderboardBtn" type="button">새로고침</button>
+        </div>
+        <div id="leaderboardTop3" class="leaderboard-top3"></div>
+        <div id="leaderboardEmpty" class="leaderboard-empty" style="display: none;">아직 랭킹에 표시할 사용자가 없습니다.</div>
+        <ul id="leaderboardList" class="leaderboard-list"></ul>
+      </div>
+
+      <div class="shared-lists-container" id="sharedListsContainer">
+        <div style="text-align: center; padding: 2rem; color: #999; grid-column: 1/-1;">
+          📭 공유된 리스트가 없습니다.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { getCurrentUser, onAuthChange, getUserInfo } from './js/auth.js';
+    import { initializeHeader, enforceAuthPage } from './js/header.js';
+    import { db } from './js/firebase-config.js';
+    import {
+      addDoc,
+      collection,
+      getDocs,
+      updateDoc,
+      deleteDoc,
+      doc,
+      query,
+      where,
+      orderBy,
+      Timestamp,
+      increment,
+      limit
+    } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    let currentUser = null;
+    let sharedTodos = [];
+    let currentFilter = '';
+    let uploading = false;
+
+    // 인증 상태 모니터링
+    onAuthChange(user => {
+      currentUser = user;
+      if (user) {
+        initializeHeader();
+        loadSharedTodos();
+        setupHamburgerMenu();
+        loadLeaderboard();
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    enforceAuthPage('index.html');
+
+    const sharedListsContainer = document.getElementById('sharedListsContainer');
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    const openUploadBtn = document.getElementById('openUploadBtn');
+    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const shareTitle = document.getElementById('shareTitle');
+    const shareCategory = document.getElementById('shareCategory');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const itemsContainer = document.getElementById('itemsContainer');
+    const submitShareBtn = document.getElementById('submitShareBtn');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMenu = document.getElementById('navMenu');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const leaderboardEmpty = document.getElementById('leaderboardEmpty');
+    const leaderboardTop3 = document.getElementById('leaderboardTop3');
+    const refreshLeaderboardBtn = document.getElementById('refreshLeaderboardBtn');
+    refreshLeaderboardBtn.addEventListener('click', loadLeaderboard);
+
+    // 로컬 타임존 기준 YYYY-MM-DD 문자열
+    function formatLocalDate(daysOffset = 0) {
+      const date = new Date();
+      date.setDate(date.getDate() + daysOffset);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // 공유된 할일 로드
+    function titleForLevel(level) {
+      if (level >= 50) return '거의 CEO';
+      if (level >= 33) return '예비 CEO';
+      if (level >= 25) return '생산성 마스터';
+      if (level >= 18) return '시간 전략가';
+      if (level >= 13) return '습관 장인';
+      if (level >= 9) return '목표 달성가';
+      if (level >= 6) return '몰입형 퍼포머';
+      if (level >= 4) return '성장하는 플래너';
+      if (level >= 2) return '꾸준한 실행가';
+      return '새싹 도전자';
+    }
+
+    async function loadSharedTodos() {
+      try {
+        const q = query(
+          collection(db, 'sharedLists'),
+          orderBy('likes', 'desc'),
+          orderBy('createdAt', 'desc')
+        );
+
+        const snapshot = await getDocs(q);
+        sharedTodos = await Promise.all(snapshot.docs.map(async (doc) => {
+          const data = doc.data();
+          // 작성자 정보 가져오기
+          const userInfo = await getUserInfo(data.uid);
+          const level = data.level ?? userInfo?.level ?? 1;
+          return {
+            id: doc.id,
+            ...data,
+            nickname: userInfo?.nickname || '익명의 사용자',
+            level,
+            titleName: data.titleName || titleForLevel(level),
+            importCount: data.importCount || 0
+          };
+        }));
+
+        renderSharedTodos();
+      } catch (error) {
+        console.error('공유 할일 로드 오류:', error);
+      }
+    }
+
+    // 공유된 할일 렌더링
+    function renderSharedTodos() {
+      const filteredTodos = currentFilter
+        ? sharedTodos.filter(todo => todo.category === currentFilter)
+        : sharedTodos;
+
+      const today = formatLocalDate();
+
+      if (filteredTodos.length === 0) {
+        sharedListsContainer.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: #999; grid-column: 1/-1;">
+            📭 ${currentFilter ? '이 카테고리에 공유된 리스트가 없습니다.' : '공유된 리스트가 없습니다.'}
+          </div>
+        `;
+        return;
+      }
+
+      sharedListsContainer.innerHTML = filteredTodos.map(todo => {
+        return `
+          <div class="todo-card">
+            <div class="todo-card-header">
+              <div class="todo-card-title">${todo.title || todo.text}</div>
+              <span class="todo-card-category">${todo.category}</span>
+            </div>
+            <div class="todo-card-meta">
+              <span class="todo-card-author">👤 ${todo.nickname} · ${todo.titleName || titleForLevel(todo.level || 1)}</span>
+            </div>
+            <div class="todo-card-meta">칭호: ${todo.titleName || titleForLevel(todo.level || 1)}</div>
+            <div class="todo-card-meta">불러온 횟수: ${todo.importCount || 0}</div>
+            <div class="todo-card-meta import-date-row">
+              <span class="import-date-label">📅 불러올 날짜</span>
+              <input type="date" class="import-date" data-id="${todo.id}" value="${today}">
+            </div>
+            <ul class="todo-list shared-items-list">
+              ${(todo.items || []).map(item => {
+                const text = typeof item === 'string' ? item : (item?.text || '');
+                const cat = typeof item === 'object' ? (item?.category || '') : '';
+                return `<li class="shared-item-row">${text ? text : ''}${cat ? `<span class="shared-item-cat">${cat}</span>` : ''}</li>`;
+              }).join('')}
+            </ul>
+            <div class="todo-card-actions">
+              <button class="btn-small btn-like" data-id="${todo.id}" data-likes="${todo.likes || 0}">
+                💚 좋아요 ${todo.likes || 0}
+              </button>
+              <button class="btn-small btn-import" data-id="${todo.id}">불러오기</button>
+              ${currentUser && currentUser.uid === todo.uid ? `<button class="btn-small btn-delete" data-id="${todo.id}">삭제</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 액션 버튼 이벤트 바인딩
+      document.querySelectorAll('.btn-like').forEach(btn => {
+        btn.addEventListener('click', () => likeTodo(btn.dataset.id, Number(btn.dataset.likes || 0)));
+      });
+
+      document.querySelectorAll('.btn-import').forEach(btn => {
+        btn.addEventListener('click', () => importSharedList(btn.dataset.id));
+      });
+
+      document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => deleteSharedList(btn.dataset.id));
+      });
+    }
+
+    // 좋아요 증가 (사용자당 1회, 로컬 스토리지로 클라이언트 제한)
+    async function likeTodo(id, currentLikes) {
+      if (!currentUser) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+
+      const key = `liked_sharedLists_${currentUser.uid}`;
+      const liked = new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+      if (liked.has(id)) {
+        alert('이미 좋아요를 누르셨습니다.');
+        return;
+      }
+
+      try {
+        const nextLikes = (currentLikes || 0) + 1;
+        await updateDoc(doc(db, 'sharedLists', id), {
+          likes: nextLikes
+        });
+        liked.add(id);
+        localStorage.setItem(key, JSON.stringify(Array.from(liked)));
+        await loadSharedTodos();
+      } catch (error) {
+        console.error('좋아요 업데이트 오류:', error);
+      }
+    }
+
+    // 공유 리스트 불러오기 -> 개인 todos에 추가, importCount 증가
+    async function importSharedList(id) {
+      if (!currentUser) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+
+      const target = sharedTodos.find(t => t.id === id);
+      if (!target) return;
+
+      const dateInput = document.querySelector(`.import-date[data-id="${id}"]`);
+      const dueDate = dateInput?.value || '';
+
+      const items = target.items || [];
+      if (items.length === 0) {
+        alert('불러올 항목이 없습니다.');
+        return;
+      }
+
+      try {
+        // 사용자 todos에 항목 추가
+        const batchPromises = items.map(text => addDoc(collection(db, 'todos'), {
+          uid: currentUser.uid,
+          text,
+          category: target.category || '',
+          dueDate,
+          completed: false,
+          completedDate: null,
+          createdAt: Timestamp.now(),
+          shared: false,
+          sourceSharedId: target.id,
+          sourceTitle: target.title
+        }));
+
+        await Promise.all(batchPromises);
+
+        // importCount 증가
+        await updateDoc(doc(db, 'sharedLists', id), {
+          importCount: increment(1)
+        });
+
+        await loadSharedTodos();
+        alert('내 리스트로 불러왔습니다.');
+      } catch (error) {
+        console.error('불러오기 오류:', error);
+        alert('불러오기 중 오류가 발생했습니다.');
+      }
+    }
+
+    // 게시자 삭제
+    async function deleteSharedList(id) {
+      if (!currentUser) return;
+      if (!confirm('이 공유 리스트를 삭제하시겠습니까?')) return;
+
+      try {
+        await deleteDoc(doc(db, 'sharedLists', id));
+        await loadSharedTodos();
+      } catch (error) {
+        console.error('삭제 오류:', error);
+      }
+    }
+
+    function resetUploadForm() {
+      shareTitle.value = '';
+      shareCategory.value = '';
+      itemsContainer.innerHTML = '<div class="item-row"><input type="text" class="share-item" placeholder="항목을 입력하세요" required></div>';
+      uploadForm.style.display = 'none';
+      cancelUploadBtn.style.display = 'none';
+      openUploadBtn.style.display = 'inline-flex';
+      uploadStatus.textContent = '';
+    }
+
+    async function submitSharedList() {
+      if (uploading) return;
+      if (!currentUser) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+
+      const title = shareTitle.value.trim();
+      const category = shareCategory.value.trim();
+      const items = Array.from(document.querySelectorAll('.share-item-row')).map(row => {
+        const text = row.querySelector('.share-item')?.value.trim() || '';
+        const itemCategory = row.querySelector('.share-item-category')?.value.trim() || '';
+        return { text, category: itemCategory };
+      }).filter(item => item.text && item.category);
+
+      if (!title) {
+        uploadStatus.textContent = '제목을 입력하세요.';
+        uploadStatus.style.color = '#d9534f';
+        return;
+      }
+
+      if (items.length === 0) {
+        uploadStatus.textContent = '리스트 항목과 카테고리를 모두 입력하세요.';
+        uploadStatus.style.color = '#d9534f';
+        return;
+      }
+
+      if (!category) {
+        uploadStatus.textContent = '카테고리를 입력하세요.';
+        uploadStatus.style.color = '#d9534f';
+        return;
+      }
+
+      uploading = true;
+      submitShareBtn.disabled = true;
+      uploadStatus.textContent = '업로드 중...';
+      uploadStatus.style.color = '#666';
+
+      try {
+        const userInfo = await getUserInfo(currentUser.uid);
+        const level = userInfo?.level ?? 1;
+        const titleName = titleForLevel(level);
+
+        await addDoc(collection(db, 'sharedLists'), {
+          uid: currentUser.uid,
+          title,
+          items,
+          category,
+          likes: 0,
+          importCount: 0,
+          createdAt: Timestamp.now(),
+          level,
+          titleName,
+          nickname: userInfo?.nickname || '익명의 사용자'
+        });
+
+        uploadStatus.textContent = '업로드 완료!';
+        uploadStatus.style.color = '#28a745';
+        resetUploadForm();
+        await loadSharedTodos();
+      } catch (error) {
+        console.error('업로드 오류:', error);
+        uploadStatus.textContent = '업로드 실패: ' + error.message;
+        uploadStatus.style.color = '#d9534f';
+      } finally {
+        uploading = false;
+        submitShareBtn.disabled = false;
+      }
+    }
+
+    // 카테고리 필터
+    categoryButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        categoryButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.category;
+        renderSharedTodos();
+      });
+    });
+
+    // 업로드 영역 토글
+    openUploadBtn.addEventListener('click', () => {
+      uploadForm.style.display = 'block';
+      cancelUploadBtn.style.display = 'inline-flex';
+      openUploadBtn.style.display = 'none';
+    });
+
+    cancelUploadBtn.addEventListener('click', () => {
+      resetUploadForm();
+    });
+
+    addItemBtn.addEventListener('click', () => {
+      const div = document.createElement('div');
+      div.className = 'item-row share-item-row';
+      div.innerHTML = `
+        <input type="text" class="share-item" placeholder="항목을 입력하세요" required>
+        <select class="share-item-category" required>
+          <option value="">카테고리</option>
+          <option value="건강">건강</option>
+          <option value="공부">공부</option>
+          <option value="헬스">헬스</option>
+          <option value="일">일</option>
+          <option value="취미">취미</option>
+          <option value="기타">기타</option>
+        </select>
+      `;
+      itemsContainer.appendChild(div);
+    });
+
+    submitShareBtn.addEventListener('click', submitSharedList);
+    function setupHamburgerMenu() {
+      if (!hamburgerBtn || !navMenu) return;
+
+      hamburgerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hamburgerBtn.classList.toggle('active');
+        navMenu.classList.toggle('active');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('header')) {
+          hamburgerBtn.classList.remove('active');
+          navMenu.classList.remove('active');
+        }
+      });
+    }
+
+    async function loadLeaderboard() {
+      try {
+        const q = query(collection(db, 'users'), orderBy('xp', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        const leaders = snapshot.docs.map((doc, idx) => ({
+          rank: idx + 1,
+          uid: doc.id,
+          xp: doc.data().xp || 0,
+          level: doc.data().level || 1,
+          nickname: doc.data().nickname || '사용자'
+        }));
+
+        renderLeaderboard(leaders);
+      } catch (error) {
+        console.error('랭킹 로드 오류:', error);
+      }
+    }
+
+    function renderLeaderboard(leaders) {
+      if (!leaders.length) {
+        leaderboardEmpty.style.display = 'block';
+        leaderboardList.innerHTML = '';
+        leaderboardTop3.innerHTML = '';
+        return;
+      }
+
+      leaderboardEmpty.style.display = 'none';
+      renderTop3(leaders.slice(0, 3));
+      leaderboardList.innerHTML = leaders.map(item => {
+        const isMe = currentUser && item.uid === currentUser.uid;
+        return `
+          <li class="leaderboard-item ${isMe ? 'is-me' : ''}">
+            <div class="leaderboard-rank">#${item.rank}</div>
+            <div class="leaderboard-user">
+              <div class="leaderboard-name">${item.nickname}</div>
+              <div class="leaderboard-meta">Lv.${item.level} · ${item.xp} XP</div>
+            </div>
+            ${isMe ? '<span class="leaderboard-badge">나</span>' : ''}
+          </li>
+        `;
+      }).join('');
+    }
+
+    function renderTop3(top3) {
+      if (!top3.length) {
+        leaderboardTop3.innerHTML = '';
+        return;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      leaderboardTop3.innerHTML = top3.map((item, idx) => {
+        const isMe = currentUser && item.uid === currentUser.uid;
+        return `
+          <div class="leaderboard-top-card ${isMe ? 'is-me' : ''}">
+            <div class="leaderboard-top-medal">${medals[idx] || ''}</div>
+            <div class="leaderboard-top-name">${item.nickname}</div>
+            <div class="leaderboard-top-meta">Lv.${item.level} · ${item.xp} XP</div>
+            ${isMe ? '<span class="leaderboard-badge">나</span>' : ''}
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>

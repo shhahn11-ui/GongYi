@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TodoShare - 로그인</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body.loading {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="loading">
+  <div class="auth-container">
+    <div class="auth-form">
+      <h1>📋 TodoShare</h1>
+      <div id="alertMessage"></div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">이메일</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            required
+            placeholder="your@email.com"
+          >
+        </div>
+        <div class="form-group">
+          <label for="password">비밀번호</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            required
+            placeholder="비밀번호를 입력하세요"
+          >
+        </div>
+        <button type="submit" class="btn">로그인</button>
+      </form>
+      <div class="form-toggle">
+        아직 계정이 없으신가요? 
+        <a href="signup.html">회원가입</a>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { login, onAuthChange } from './js/auth.js';
+
+    // Firebase 인증 초기화 완료 대기
+    let initialized = false;
+    
+    const unsubscribe = onAuthChange(user => {
+      if (!initialized) {
+        initialized = true;
+        
+        if (user) {
+          // 이미 로그인된 상태 - 대시보드로 이동
+          window.location.href = 'dashboard.html';
+        } else {
+          // 미로그인 상태 - 로그인 페이지 표시
+          document.body.classList.remove('loading');
+        }
+      }
+    });
+
+    const loginForm = document.getElementById('loginForm');
+    const alertMessage = document.getElementById('alertMessage');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        alertMessage.innerHTML = '';
+        await login(email, password);
+        alertMessage.innerHTML = '<div class="alert alert-success">로그인 성공! 리디렉션 중...</div>';
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1000);
+      } catch (error) {
+        let errorMessage = '로그인 실패했습니다.';
+        
+        if (error.code === 'auth/user-not-found') {
+          errorMessage = '존재하지 않는 이메일입니다.';
+        } else if (error.code === 'auth/wrong-password') {
+          errorMessage = '비밀번호가 잘못되었습니다.';
+        } else if (error.code === 'auth/invalid-email') {
+          errorMessage = '유효하지 않은 이메일 형식입니다.';
+        }
+        
+        alertMessage.innerHTML = `<div class="alert alert-error">${errorMessage}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.token.email != null &&
+             request.auth.token.email.matches('(?i)^shhahn11@gmail\\.com$');
+    }
+
+    // 사용자 프로필
+    match /users/{uid} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // 공유 리스트
+    match /sharedLists/{id} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+                    request.resource.data.uid == request.auth.uid;
+
+      // 작성자는 전체 수정/삭제 가능
+      allow update, delete: if request.auth != null &&
+                            request.auth.uid == resource.data.uid;
+
+      // 비작성자는 likes, importCount만 변경 가능 (uid는 유지)
+      allow update: if request.auth != null &&
+                    request.resource.data.uid == resource.data.uid &&
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'importCount']);
+    }
+
+    // 개인 투두
+    match /todos/{id} {
+      allow read: if request.auth != null &&
+                  (request.auth.uid == resource.data.uid || isAdmin());
+      allow update, delete: if request.auth != null &&
+                            request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null &&
+                    request.resource.data.uid == request.auth.uid;
+    }
+
+    // 관리자 전용 데이터
+    match /admin/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+  }
+}

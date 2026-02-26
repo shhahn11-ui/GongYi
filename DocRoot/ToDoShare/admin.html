@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TodoShare - 관리자탭</title>
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body.loading {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .admin-wrap {
+      max-width: 980px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .admin-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      padding: 1.5rem;
+      border: 1px solid #e5e7eb;
+    }
+
+    .admin-card h2 {
+      margin-top: 0;
+      margin-bottom: 0.8rem;
+    }
+
+    .admin-card p {
+      margin: 0.5rem 0;
+      color: #334155;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .summary-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+    }
+
+    .summary-box .label {
+      font-size: 0.86rem;
+      color: #475569;
+    }
+
+    .summary-box .value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 0.2rem;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .toolbar button {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .toolbar button.active {
+      background: #334155;
+      border-color: #334155;
+      color: #fff;
+    }
+
+    .meta-row {
+      margin-bottom: 0.5rem;
+      color: #475569;
+      font-size: 0.92rem;
+    }
+
+    .docs-list {
+      display: grid;
+      gap: 0.7rem;
+      margin-top: 0.8rem;
+    }
+
+    .doc-item {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem;
+      background: #ffffff;
+    }
+
+    .doc-id {
+      font-size: 0.86rem;
+      color: #334155;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .doc-json {
+      margin: 0;
+      padding: 0.65rem;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      max-height: 260px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .hamburger-btn {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .hamburger-btn {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body class="loading">
+  <header>
+    <nav class="container">
+      <div class="logo">📋 TodoShare</div>
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="메뉴 열기">☰</button>
+      <ul class="nav-menu" id="navMenu"></ul>
+    </nav>
+  </header>
+
+  <main class="admin-wrap">
+    <section class="admin-card">
+      <h2>관리자 탭</h2>
+      <p>이 페이지는 관리자 계정(<strong>shhahn11@gmail.com</strong>)에게만 표시됩니다.</p>
+      <p>Firestore 데이터를 컬렉션별로 조회할 수 있습니다.</p>
+
+      <div class="summary-grid">
+        <div class="summary-box">
+          <div class="label">Users</div>
+          <div class="value" id="countUsers">-</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Todos</div>
+          <div class="value" id="countTodos">-</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">SharedLists</div>
+          <div class="value" id="countShared">-</div>
+        </div>
+      </div>
+
+      <div class="toolbar" id="collectionToolbar">
+        <button type="button" data-collection="users" class="active">users</button>
+        <button type="button" data-collection="todos">todos</button>
+        <button type="button" data-collection="sharedLists">sharedLists</button>
+      </div>
+
+      <div class="meta-row" id="viewerMeta">데이터를 불러오는 중...</div>
+      <div class="docs-list" id="docsList"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeHeader, enforceAuthPage, isAdminUser } from './js/header.js';
+    import { onAuthChange } from './js/auth.js';
+    import { db } from './js/firebase-config.js';
+    import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js';
+
+    enforceAuthPage();
+
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const navMenu = document.getElementById('navMenu');
+    const collectionToolbar = document.getElementById('collectionToolbar');
+    const viewerMeta = document.getElementById('viewerMeta');
+    const docsList = document.getElementById('docsList');
+    const countUsers = document.getElementById('countUsers');
+    const countTodos = document.getElementById('countTodos');
+    const countShared = document.getElementById('countShared');
+    const COLLECTIONS = ['users', 'todos', 'sharedLists'];
+    let activeCollection = 'users';
+
+    function setupHamburgerMenu() {
+      if (!hamburgerBtn || !navMenu) return;
+
+      hamburgerBtn.addEventListener('click', () => {
+        hamburgerBtn.classList.toggle('active');
+        navMenu.classList.toggle('active');
+      });
+
+      navMenu.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+          hamburgerBtn.classList.remove('active');
+          navMenu.classList.remove('active');
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('header')) {
+          hamburgerBtn.classList.remove('active');
+          navMenu.classList.remove('active');
+        }
+      });
+    }
+
+    function formatData(value) {
+      return JSON.stringify(value, (key, val) => {
+        if (val && typeof val === 'object' && 'seconds' in val && 'nanoseconds' in val) {
+          return new Date(val.seconds * 1000).toLocaleString('ko-KR', { hour12: false });
+        }
+        return val;
+      }, 2);
+    }
+
+    function setActiveCollectionButton(name) {
+      const buttons = collectionToolbar.querySelectorAll('button[data-collection]');
+      buttons.forEach((button) => {
+        button.classList.toggle('active', button.dataset.collection === name);
+      });
+    }
+
+    async function getCollectionDocs(name) {
+      const snapshot = await getDocs(collection(db, name));
+      return snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        data: docSnap.data()
+      }));
+    }
+
+    async function loadSummaryCounts() {
+      const [usersDocs, todosDocs, sharedDocs] = await Promise.allSettled([
+        getCollectionDocs('users'),
+        getCollectionDocs('todos'),
+        getCollectionDocs('sharedLists')
+      ]);
+
+      countUsers.textContent = usersDocs.status === 'fulfilled' ? usersDocs.value.length.toString() : '권한없음';
+      countTodos.textContent = todosDocs.status === 'fulfilled' ? todosDocs.value.length.toString() : '권한없음';
+      countShared.textContent = sharedDocs.status === 'fulfilled' ? sharedDocs.value.length.toString() : '권한없음';
+    }
+
+    async function loadCollectionView(name) {
+      activeCollection = name;
+      setActiveCollectionButton(name);
+      viewerMeta.textContent = `${name} 컬렉션을 불러오는 중...`;
+      docsList.innerHTML = '';
+
+      try {
+        const docs = await getCollectionDocs(name);
+        const topDocs = docs.slice(0, 30);
+
+        viewerMeta.textContent = `${name} 전체 ${docs.length}개 문서 중 최신 표시 ${topDocs.length}개`;
+
+        if (topDocs.length === 0) {
+          docsList.innerHTML = '<div class="doc-item">문서가 없습니다.</div>';
+          return;
+        }
+
+        docsList.innerHTML = topDocs.map((item) => `
+          <article class="doc-item">
+            <div class="doc-id">docId: ${item.id}</div>
+            <pre class="doc-json">${formatData(item.data)}</pre>
+          </article>
+        `).join('');
+      } catch (error) {
+        console.error('컬렉션 로드 오류:', error);
+        if (error.code === 'permission-denied') {
+          viewerMeta.textContent = `${name} 로드 실패: 권한이 없습니다.`;
+          docsList.innerHTML = '<div class="doc-item">권한 오류입니다. Firestore Rules Publish 여부와 관리자 계정(shhahn11@gmail.com) 로그인 상태를 확인하세요.</div>';
+          return;
+        }
+
+        viewerMeta.textContent = `${name} 로드 실패: ${error.message}`;
+        docsList.innerHTML = '<div class="doc-item">데이터를 가져오지 못했습니다.</div>';
+      }
+    }
+
+    collectionToolbar.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-collection]');
+      if (!button) return;
+      const selected = button.dataset.collection;
+      if (!COLLECTIONS.includes(selected) || selected === activeCollection) return;
+      loadCollectionView(selected);
+    });
+
+    onAuthChange((user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      if (!isAdminUser(user)) {
+        alert('관리자만 접근할 수 있습니다.');
+        window.location.href = 'dashboard.html';
+        return;
+      }
+
+      initializeHeader();
+      setupHamburgerMenu();
+      loadSummaryCounts();
+      loadCollectionView('users');
+      document.body.classList.remove('loading');
+    });
+  </script>
+</body>
+</html>
