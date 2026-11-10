@@ -1,0 +1,162 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head><body>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script>
+<script type="module">
+import { THREE, setup, mat, box, walk, idle, armsUp, hero as mkHero, crowdPerson, person, buildTown, buildRoom, textCanvas, ease, lerp, rnd, FONT, setFace } from '/lib.js';
+const E = setup(), { scene, camera } = E;
+const town = buildTown(scene);
+const cut = (u, d=1.4) => Math.floor(u / d);
+// ---------- village decorations ----------
+const flagCols = [0xe05a4a, 0xf0c040, 0x4aa0e0, 0x6ac46a];
+for (const z of [-2.8, 2.8]) for (let i=0;i<30;i++){ const f = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 3), mat(flagCols[i % 4])); f.rotation.x = Math.PI; f.position.set(-15 + i, 5.2 - Math.sin((i % 10) / 10 * Math.PI) * 0.6, z); scene.add(f); }
+const stall = new THREE.Group(); stall.position.set(-9, 0, -3.6); scene.add(stall);
+const tbl = box(3, 1.2, 1.2, 0xa07040); tbl.position.y = 0.6; const awn = box(3.4, 0.15, 1.8, 0xf4e0c0); awn.position.set(0, 3, 0); stall.add(tbl, awn);
+for (let i=0;i<6;i++){ const b = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), mat(0xd8a050)); b.scale.set(1.4, 0.8, 1); b.position.set(-1.1 + i * 0.45, 1.35, 0); stall.add(b); }
+const anvil = box(1.2, 0.8, 0.6, 0x3a3a42); anvil.position.set(9, 0.4, -3.6); scene.add(anvil);
+// ---------- people ----------
+const hero = mkHero(); scene.add(hero);
+const baker = crowdPerson(2, 0.9); const apronB = box(1.0, 1.0, 0.05, 0xffffff); apronB.position.set(0, 1.35, 0.3); baker.add(apronB); scene.add(baker);
+const smith = person({shirt:0x8a4a2a, pants:0x2b3346, hair:0x1a1a1a, scale:1.05}); const apronS = box(1.0, 1.1, 0.05, 0x5a3a20); apronS.position.set(0, 1.35, 0.3); smith.add(apronS); scene.add(smith);
+const crowd = []; for (let i=0;i<10;i++){ const p = crowdPerson(i, 0.85); scene.add(p); crowd.push(p); }
+const granny = person({shirt:0x7a4a9a, pants:0x4a3a5a, hair:0xe0e0e0, scale:0.88}); const bun = box(0.5, 0.4, 0.4, 0xe0e0e0); bun.position.set(0, 3.25, -0.2); granny.add(bun);
+for (const x of [-0.2, 0.2]){ const gl = box(0.26, 0.2, 0.04, 0x222222); gl.position.set(x, 2.5, 0.47); granny.add(gl); } scene.add(granny);
+const people = [hero, baker, smith, granny, ...crowd];
+// ---------- cards ----------
+function cardTex(txt, old){ const {g, t} = textCanvas(256, 384); g.fillStyle = old ? '#e4d2a0' : '#fffaf0'; g.fillRect(0, 0, 256, 384); g.strokeStyle = old ? '#a88a50' : '#e0b040'; g.lineWidth = 14; g.strokeRect(12, 12, 232, 360);
+  if (old){ g.fillStyle = 'rgba(120,90,40,.25)'; for (let i=0;i<14;i++){ g.beginPath(); g.arc(rnd() * 256, rnd() * 384, 6 + rnd() * 18, 0, 7); g.fill(); } g.fillStyle = '#8a6a3a'; g.font = `700 30px ${FONT}`; g.textAlign = 'right'; g.fillText('1926', 230, 360); }
+  if (txt){ g.fillStyle = '#3a2a10'; g.font = `900 64px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 128, 192); }
+  t.needsUpdate = true; return t; }
+const CT = {baker: cardTex('제빵사'), knight: cardTex('기사'), blank: cardTex(''), old: cardTex('', true)};
+const cardM = t => new THREE.MeshBasicMaterial({map:t, side:THREE.DoubleSide});
+const card = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.9), cardM(CT.blank)); scene.add(card);
+const falling = []; for (let i=0;i<46;i++){ const c = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.75), new THREE.MeshBasicMaterial({color:0xfff2c0, side:THREE.DoubleSide, fog:false})); scene.add(c); falling.push([c, -14 + rnd() * 28, -3 + rnd() * 6, rnd() * 40, rnd() * 6]); }
+const sparkle = new THREE.PointLight(0xffe8a0, 0, 8, 1.5); scene.add(sparkle);
+// ---------- montage props ----------
+const sword = new THREE.Group(); const blade = box(0.25, 3.2, 0.08, 0xd8dce4); blade.position.y = 1.9; const guard = box(1.1, 0.18, 0.2, 0xb08a30); guard.position.y = 0.3; const grip = box(0.18, 0.6, 0.18, 0x5a3a20); sword.add(blade, guard, grip); scene.add(sword);
+const oven = new THREE.Group(); const ob = box(2.4, 2.2, 2, 0x8a5a4a); ob.position.y = 1.1; const odoor = box(1.4, 0.9, 0.1, 0x222222); odoor.position.set(0, 1.0, 1.02); const chim = box(0.5, 1.2, 0.5, 0x6a4a3a); chim.position.set(0.6, 2.8, -0.3); oven.add(ob, odoor, chim); oven.position.set(-3, 0, -3.2); scene.add(oven);
+const puffs = []; for (let i=0;i<16;i++){ const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 0), new THREE.MeshLambertMaterial({color:0x5a5a5a, flatShading:true, transparent:true})); scene.add(p); puffs.push([p, new THREE.Vector3(rnd() - .5, rnd() * .8 + .2, rnd() - .5).normalize()]); }
+const boomL = new THREE.PointLight(0xffa040, 0, 14, 1.4); scene.add(boomL);
+const wand = box(0.08, 0.9, 0.08, 0x6a3a20); scene.add(wand);
+const zaps = []; for (let i=0;i<14;i++){ const z = new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), new THREE.MeshBasicMaterial({color:0xd8a0ff})); scene.add(z); zaps.push([z, rnd() * 6.28, rnd()]); }
+// ---------- library + basement ----------
+const lib = buildRoom(scene, 300);
+for (let i=0;i<4;i++){ const sh = box(3, 6, 1, 0x6a4a2a); sh.position.set(294 + i * 4, 3, -5.4); scene.add(sh); for (let r=0;r<5;r++) for (let k=0;k<7;k++){ const b = box(0.32, 0.9, 0.7, [0xa03a2a, 0x2a5a8a, 0x3a7a3a, 0xc0902a][(k + r + i) % 4]); b.position.set(292.8 + i * 4 + k * 0.4, 0.9 + r * 1.15, -5.2); scene.add(b); } }
+const base = buildRoom(scene, 600);
+function portraitTex(year, kind){ const {g, t} = textCanvas(256, 340); g.fillStyle = '#c89a30'; g.fillRect(0, 0, 256, 340); g.fillStyle = ['#4a5a7a', '#7a3a3a', '#3a6a5a', '#6a5a8a'][kind]; g.fillRect(16, 16, 224, 270);
+  g.fillStyle = ['#8a8a96', '#b03030', '#3a6aa0', '#e0e0e8'][kind]; g.fillRect(64, 190, 128, 96);
+  g.fillStyle = '#f2c38b'; g.fillRect(88, 100, 80, 80); g.fillStyle = '#1b1b1b'; g.fillRect(106, 128, 10, 14); g.fillRect(140, 128, 10, 14); g.fillRect(114, 158, 28, 5);
+  if (kind === 0){ g.fillStyle = '#9aa0aa'; g.fillRect(82, 84, 92, 30); g.fillRect(82, 84, 14, 70); g.fillRect(160, 84, 14, 70); }
+  if (kind === 1){ g.fillStyle = '#e8c030'; g.beginPath(); g.moveTo(84, 98); g.lineTo(84, 70); g.lineTo(104, 86); g.lineTo(128, 62); g.lineTo(152, 86); g.lineTo(172, 70); g.lineTo(172, 98); g.fill(); }
+  if (kind === 2){ g.fillStyle = '#2a2a3a'; g.beginPath(); g.moveTo(80, 102); g.lineTo(128, 40); g.lineTo(176, 102); g.fill(); }
+  if (kind === 3){ g.fillStyle = '#5a3a22'; g.fillRect(84, 88, 88, 24); g.fillRect(76, 100, 18, 90); g.fillRect(162, 100, 18, 90); g.fillStyle = '#fffaf0'; g.fillRect(150, 220, 40, 56); g.strokeStyle = '#e0b040'; g.lineWidth = 3; g.strokeRect(150, 220, 40, 56); }
+  g.fillStyle = '#3a2a10'; g.font = `900 40px ${FONT}`; g.textAlign = 'center'; g.fillText(year, 128, 322); t.needsUpdate = true; return t; }
+const portraits = ['1626', '1726', '1826', '1926'].map((y, i) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(2, 2.66), new THREE.MeshLambertMaterial({map:portraitTex(y, i)})); p.position.set(594.5 + i * 3.7, 3.6, -5.9); scene.add(p); return p; });
+const candles = []; for (let i=0;i<5;i++){ const c = box(0.15, 0.5, 0.15, 0xf4efe0); c.position.set(592.6 + i * 3.7, 1.6, -5.6); scene.add(c); const f = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 6), new THREE.MeshBasicMaterial({color:0xffb030})); f.position.set(592.6 + i * 3.7, 1.95, -5.6); scene.add(f); const l = new THREE.PointLight(0xffa850, 5, 7, 1.6); l.position.set(592.6 + i * 3.7, 2.3, -5.2); scene.add(l); candles.push(l); }
+const shelfB = box(4, 1.6, 0.8, 0x5a3a20); shelfB.position.set(600, 0.8, -5.5); scene.add(shelfB);
+const lantern = new THREE.PointLight(0xffc070, 0, 10, 1.5); scene.add(lantern); const lanM = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.3), new THREE.MeshBasicMaterial({color:0xffd890})); scene.add(lanM);
+// ---------- flashbacks ----------
+const dragon = new THREE.Group(); dragon.position.set(900, 0, -6); scene.add(dragon);
+const dm = 0x3a8a4a; const dBody = box(4, 2.4, 2.4, dm); dBody.position.y = 2.4; const dNeck = box(1.2, 2.6, 1.2, dm); dNeck.position.set(2.2, 3.8, 0); dNeck.rotation.z = -0.5;
+const dHead = box(2, 1.2, 1.3, dm); dHead.position.set(3.4, 5.0, 0); const dTail = box(3.5, 0.8, 0.8, dm); dTail.position.set(-3.4, 1.8, 0); dTail.rotation.z = 0.3; dragon.add(dBody, dNeck, dHead, dTail);
+for (const s of [-1, 1]){ const w = new THREE.Mesh(new THREE.PlaneGeometry(4, 2.4), mat(0x2a6a3a, {side:THREE.DoubleSide})); w.position.set(0, 4, s * 2); w.rotation.x = s * 0.9; dragon.add(w); }
+for (const z of [-0.4, 0.4]){ const e = box(0.25, 0.25, 0.1, 0xffd030); e.material = new THREE.MeshBasicMaterial({color:0xffd030}); e.position.set(3.9, 5.25, z * 1.6); dragon.add(e); }
+const knight = person({shirt:0x9aa0aa, pants:0x6a6a72, hair:0x9aa0aa}); const helm = box(1.0, 0.5, 1.0, 0x9aa0aa); helm.position.y = 3.0; knight.add(helm); scene.add(knight);
+const kSword = sword.clone(); scene.add(kSword);
+const castle = new THREE.Group(); castle.position.set(1100, 0, -10); scene.add(castle);
+const keep = box(10, 9, 6, 0xbcb4a0); keep.position.y = 4.5; castle.add(keep); for (const x of [-6, 6]){ const tw = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.8, 13, 8), mat(0xb0a890)); tw.position.set(x, 6.5, 0); const rf = new THREE.Mesh(new THREE.ConeGeometry(2.2, 3, 8), mat(0x3a4a8a)); rf.position.set(x, 14.5, 0); castle.add(tw, rf); }
+const king = person({shirt:0xb03030, pants:0x3a2a2a, hair:0x5a3a22}); const crown = box(1.0, 0.35, 1.0, 0xe8c030); crown.position.y = 3.25; king.add(crown); scene.add(king);
+const pen = new THREE.Group(); const penB = box(0.07, 0.07, 0.8, 0x2a2a3a); const penT = box(0.05, 0.05, 0.12, 0xd8d8d8); penT.position.z = 0.45; pen.add(penB, penT); scene.add(pen);
+
+function sepia(on){ if (on){ scene.background.setHex(0xd8b888); scene.fog.color.setHex(0xd8b888); E.hemi.color.setHex(0xffe0b0); } }
+function face(p, k, skin){ setFace(p, k, skin); }
+window.renderAt = (t) => {
+  const {name, u, len} = E.shot(t);
+  const c = cut(u);
+  E.sky(1); E.placeSun(1.1); town.setNight(0); E.hemi.color.setHex(0xbfe3ff); scene.fog.far = 160;
+  people.forEach(p => { p.visible = false; idle(p); p.rotation.set(0, 0, 0); p.position.y = 0; face(p, 'neutral'); });
+  [card, sword, wand, pen, lanM, knight, kSword, king].forEach(o => o.visible = false); falling.forEach(f => f[0].visible = false); puffs.forEach(p => p[0].visible = false); zaps.forEach(z => z[0].visible = false);
+  sparkle.intensity = 0; boomL.intensity = 0; lantern.intensity = 0; lib.light.intensity = 0; base.light.intensity = 0; candles.forEach(l => l.intensity = 0);
+  const fall = (k=1) => falling.forEach(([m, x, z, y0, ph], i) => { m.visible = true; const y = 30 - ((t * 4 + y0) % 30) * k; m.position.set(x + Math.sin(t * 2 + ph) * 0.6, Math.max(2.2, y), z); m.rotation.set(Math.sin(t * 3 + ph) * 0.8, t * 2 + ph, Math.cos(t * 2 + ph) * 0.4); });
+  const crowdAt = (look, kinds) => crowd.forEach((p, i) => { p.visible = true; p.position.set(-6 + (i % 5) * 2.4, 0, i < 5 ? -1.6 : 1.4); p.rotation.y = look ?? (i < 5 ? 0 : Math.PI); if (kinds) face(p, kinds[i % kinds.length]); });
+  const holdCard = (p, tex, side=1) => { card.visible = true; card.material.map = tex; p.updateMatrixWorld(true); const v = new THREE.Vector3(side * 0.55, 2.0, 0.75).applyMatrix4(p.matrixWorld); card.position.copy(v); card.rotation.set(-0.15, p.rotation.y, 0); p.userData.arms[side > 0 ? 1 : 0].rotation.x = -1.3; };
+  if (name === 'A'){
+    fall(); crowdAt(null, ['shock', 'happy']); crowd.forEach(p => p.userData.head.rotation.x = -0.5);
+    if (c === 0){ camera.position.set(-14, 1.4, 0.4); camera.lookAt(0, 14, 0); } else { camera.position.set(-1.2, 3.5, 0.1); camera.lookAt(-1.2, 2.3, 1.4); }
+  } else if (name === 'A2'){
+    fall(); crowdAt(null, ['happy', 'shock', 'blush']); crowd.forEach((p, i) => armsUp(p, 2.4 + Math.sin(t * 6 + i) * 0.3));
+    camera.position.set(-12 + u, 3, 0.6); camera.lookAt(0, 4, 0);
+  } else if (name === 'B' || name === 'B2'){
+    const p = name === 'B' ? baker : smith; p.visible = true; p.position.set(name === 'B' ? -9 : 9, 0, -2); p.rotation.y = name === 'B' ? 0.4 : -0.4; face(p, 'happy');
+    holdCard(p, name === 'B' ? CT.baker : CT.knight); sparkle.intensity = 6; sparkle.position.copy(card.position).add(new THREE.Vector3(0, 0, 1));
+    if (name === 'B2' && u > 0.8){ p.userData.arms[0].rotation.set(-2.6, 0, -0.6); face(p, 'determined'); }
+    const k = ease(u / len); camera.position.set(p.position.x + (name === 'B' ? 1 : -1), 2.6, p.position.z + lerp(4, 3, k)); camera.lookAt(p.position.x, 2.3, p.position.z);
+  } else if (name === 'B3'){
+    crowdAt(null, ['happy', 'happy', 'blush']); crowd.forEach((p, i) => armsUp(p, 2.2 + Math.abs(Math.sin(t * 7 + i)) * 0.6)); baker.visible = smith.visible = true; baker.position.set(-1, 0, 0); smith.position.set(1.4, 0, 0); face(baker, 'happy'); face(smith, 'happy'); armsUp(baker, 2.5); armsUp(smith, 2.5);
+    camera.position.set(-9 + u, 4, 0.5); camera.lookAt(0, 2, 0);
+  } else if (name === 'C' || name === 'C2'){
+    hero.visible = true; hero.position.set(0, 0, 0); hero.rotation.y = -Math.PI / 2;
+    if (name === 'C'){ face(hero, 'happy'); hero.userData.head.rotation.x = -0.5; card.visible = true; card.material.map = CT.blank; card.position.set(-0.6, lerp(7, 3.0, ease(u / len)), 0.4); card.rotation.set(0, -Math.PI / 2, Math.sin(t * 4) * 0.4); armsUp(hero, 1.6);
+      camera.position.set(-5, 1.8, 0.6); camera.lookAt(0, 3.6, 0); }
+    else if (cut(u, 0.9) === 0){ holdCard(hero, CT.blank); face(hero, 'neutral'); camera.position.set(-1.6, 2.5, 0.3); camera.lookAt(card.position); }
+    else { holdCard(hero, CT.blank); face(hero, 'shock'); camera.position.set(-2.2, 2.6, -0.4); camera.lookAt(0, 2.5, 0); }
+  } else if (name === 'D' || name === 'D2'){
+    crowdAt(null, ['smirk', 'smirk', 'neutral']); crowd.forEach((p, i) => { p.rotation.y += (i % 2 ? 0.6 : -0.6); p.userData.head.rotation.z = (i % 2 ? -0.25 : 0.25); });
+    hero.visible = true; hero.position.set(6, 0, 0); hero.rotation.y = -Math.PI / 2; face(hero, 'sad'); holdCard(hero, CT.blank);
+    if (name === 'D'){ camera.position.set(-10 + u * 2, 2.6, 0.4); camera.lookAt(-2 + u * 2, 2.4, 0); }
+    else if (c === 0){ camera.position.set(-3.6, 2.6, 0.2); camera.lookAt(-3.6, 2.4, -1.6); }
+    else { camera.position.set(3.5, 2.6, 0.3); camera.lookAt(6, 2.5, 0); }
+  } else if (name === 'E'){
+    hero.visible = true; face(hero, 'determined');
+    if (c === 0){ hero.position.set(0, 0, 0); hero.rotation.y = -Math.PI / 2; camera.position.set(-2.4, 2.6, 0.2); camera.lookAt(0, 2.5, 0); }
+    else { const x = -4 + (u - 1.4) * 4; hero.position.set(x, 0, 0); hero.rotation.y = Math.PI / 2; walk(hero, u * 1.6, 1.6, 0.9); camera.position.set(x + 5, 2.4, 1.6); camera.lookAt(x, 1.8, 0); }
+  } else if (name === 'F1'){
+    hero.visible = true; hero.position.set(8, 0, -1.4); hero.rotation.y = -0.3; sword.visible = true;
+    const k = ease(u / 0.6), fallk = ease((u - 0.6) / 0.4); armsUp(hero, lerp(0.5, 2.9, k)); hero.rotation.x = -fallk * 1.4; hero.position.y = fallk * 0.4;
+    hero.updateMatrixWorld(true); const hp = new THREE.Vector3(0, 3.2, 0.5).applyMatrix4(hero.matrixWorld); sword.position.copy(hp); sword.rotation.set(-0.3 - fallk * 1.2, -0.3, 0);
+    face(hero, u > 0.6 ? 'shock' : 'determined'); camera.position.set(5, 2.4, 2.2); camera.lookAt(8, 2.4, -1.4);
+  } else if (name === 'F2'){
+    hero.visible = true; hero.position.set(-3, 0, -0.6); hero.rotation.y = Math.PI; const boom = u > 0.5;
+    face(hero, boom ? 'soot' : 'determined'); if (boom){ hero.rotation.set(0.25, Math.PI / 2, 0); armsUp(hero, 1.0); boomL.intensity = Math.max(0, 40 - (u - 0.5) * 40); boomL.position.set(-3, 2, -1.5);
+      puffs.forEach(([p, d]) => { p.visible = true; const q = (u - 0.5) * 3; p.position.set(-3 + d.x * q * 1.2, 1.2 + d.y * q, -2.2 + d.z * q); p.scale.setScalar(0.6 + q * 0.6); p.material.opacity = Math.max(0, 0.9 - q * 0.2); }); }
+    camera.position.set(1.2 + Math.sin(t * 60) * (boom ? 0.05 : 0), 2.5, -0.6); camera.lookAt(-3, 2.0, -1.4);
+  } else if (name === 'F3'){
+    hero.visible = true; hero.position.set(0, 0, 0); hero.rotation.y = -Math.PI / 2; wand.visible = true; hero.updateMatrixWorld(true);
+    const wp = new THREE.Vector3(0.78, 1.3, 1.0).applyMatrix4(hero.matrixWorld); hero.userData.arms[1].rotation.x = -1.5; wand.position.copy(wp); wand.rotation.set(0, 0, Math.PI / 2 + 0.3);
+    if (c === 0){ face(hero, u < 0.6 ? 'determined' : 'shock'); zaps.forEach(([z, a, ph]) => { z.visible = true; const q = (u * 1.5 + ph) % 1; z.position.set(wp.x - 0.3 + Math.cos(a) * 0.3 - q * 0.4, wp.y + q * 1.6, wp.z + Math.sin(a) * 0.3); });
+      puffs.forEach(([p, d], i) => { if (i > 5 || u < 0.7) return; p.visible = true; const q = (u - 0.7) * 2; p.position.set(d.x * 0.6, 3.2 + q * 1.2 + i * 0.1, d.z * 0.6); p.scale.setScalar(0.4 + q * 0.3); p.material.opacity = 0.8; });
+      camera.position.set(-2.6, 2.8, 0.4); camera.lookAt(0, 2.8, 0); }
+    else { face(hero, 'sad'); crowdAt(null, ['happy']); crowd.forEach((p, i) => { p.rotation.x = Math.sin(t * 14 + i) * 0.08; p.userData.arms.forEach(a => a.rotation.x = -0.6); });
+      camera.position.set(-10, 3, 0.5); camera.lookAt(0, 2, 0); }
+  } else if (['G', 'H', 'H2', 'I', 'K', 'L', 'L2', 'M', 'M2', 'N'].includes(name)){
+    E.sky(0); E.hemi.intensity = 0.4; const inLib = name === 'G';
+    if (inLib){ lib.light.intensity = 1; granny.visible = hero.visible = true; const x = lerp(306, 295, ease(u / len)); granny.position.set(x, 0, -1); granny.rotation.set(0.15, -Math.PI / 2, 0); walk(granny, u, 0.5, 0.3);
+      hero.position.set(x + 2.2, 0, -0.6); hero.rotation.y = -Math.PI / 2; walk(hero, u, 0.5, 0.3); face(granny, 'happy'); face(hero, 'neutral');
+      lantern.intensity = 12; lantern.position.set(x - 0.8, 2, -0.2); lanM.visible = true; lanM.position.set(x - 0.8, 1.2, -0.3); granny.userData.arms[1].rotation.x = -0.8;
+      camera.position.set(x - 6, 2.8, 1.8); camera.lookAt(x + 1, 2, -0.8); }
+    else { base.light.intensity = 0.5; candles.forEach((l, i) => l.intensity = 5 + Math.sin(t * 9 + i) * 0.8);
+      granny.visible = hero.visible = true; granny.position.set(597, 0, -2.5); granny.rotation.set(0.12, 0.3, 0); hero.position.set(600, 0, -1.5); hero.rotation.y = Math.PI; face(granny, 'neutral'); lantern.intensity = 9; lantern.position.set(599, 3.2, 0.5); base.light.intensity = 1.0;
+      if (name === 'H'){ face(hero, 'neutral'); hero.position.set(602, 0, -0.6); granny.position.set(598, 0, -0.8); const k = ease(u / len); camera.position.set(600, lerp(3, 3.6, k), lerp(5, 4, k)); camera.lookAt(600, 3.4, -5.9); }
+      else if (name === 'H2'){ const i = Math.min(3, Math.floor(u / (len / 4))); const p = portraits[i].position; camera.position.set(p.x + 0.6, 3.6, -2.2); camera.lookAt(p.x, 3.4, -5.9); }
+      else if (name === 'I'){ face(hero, 'shock'); hero.rotation.y = 0.4; camera.position.set(599, 2.9, 1.2); camera.lookAt(600, 2.6, -1.5); }
+      else if (name === 'K'){ const p = portraits[3].position; const k = ease(u / len); camera.position.set(p.x, 3.5, lerp(-1.6, -3.4, k)); camera.lookAt(p.x, 3.5, -5.9); }
+      else if (name === 'L'){ face(hero, 'shock'); hero.rotation.y = 0.8; hero.userData.head.rotation.z = 0.2; camera.position.set(601.8, 2.8, 0.4); camera.lookAt(600, 2.6, -1.5); }
+      else if (name === 'L2'){ face(granny, 'happy'); granny.rotation.y = 0.9; granny.userData.arms[1].rotation.x = -1.2 * ease(u / 1.5); if (u > 1.2){ card.visible = true; card.material.map = CT.old; granny.updateMatrixWorld(true); card.position.copy(new THREE.Vector3(0.6, 1.7, 0.9).applyMatrix4(granny.matrixWorld)); card.rotation.set(0, 0.9, 0); }
+        const k = ease(u / len); camera.position.set(lerp(600.5, 599.6, k), 2.6, lerp(1.2, 0.2, k)); camera.lookAt(597.4, 2.2, -2.3); }
+      else if (name === 'M'){ card.visible = true; card.material.map = CT.old; card.position.set(598, 2.2, -1.6); card.rotation.set(0, 0.2, Math.sin(t) * 0.03); camera.position.set(598.2, 2.25, lerp(-0.4, -0.65, ease(u / len))); camera.lookAt(card.position); }
+      else if (name === 'M2'){ face(granny, 'wink'); granny.rotation.y = 0.6; camera.position.set(598.3, 2.3, -0.4); camera.lookAt(597, 2.2, -2.5); }
+      else if (name === 'N'){ hero.rotation.y = 0; face(hero, 'determined'); card.visible = true; card.material.map = CT.blank; hero.updateMatrixWorld(true); card.position.set(600, 1.95, -0.6); card.rotation.set(-1.0, 0, 0);
+        pen.visible = true; pen.position.set(600.25, 2.15 + Math.sin(t * 3) * 0.05, -0.55); pen.rotation.set(-0.6, 0.3, 0); hero.userData.arms.forEach(a => a.rotation.x = -1.1);
+        const k = ease(u / len); camera.position.set(lerp(600.2, 603, k), lerp(2.9, 4.4, k), lerp(0.6, 4.5, k)); camera.lookAt(lerp(600, 599, k), lerp(2.0, 2.8, k), lerp(-0.6, -3, k)); }
+    }
+  } else if (name === 'J' || name === 'J2'){
+    if (c === 0){ E.sky(0); E.hemi.intensity = 0.4; base.light.intensity = 0.5; candles.forEach(l => l.intensity = 5); const p = portraits[name === 'J' ? 0 : 1].position; camera.position.set(p.x, 3.5, lerp(-2.6, -3.2, ease(u / 1.4))); camera.lookAt(p.x, 3.5, -5.9); }
+    else { E.sky(1); sepia(true); E.hemi.intensity = 1.2;
+      if (name === 'J'){ knight.visible = true; kSword.visible = true; const q = ease((u - 1.4) / 0.6); knight.position.set(lerp(893, 899, q), q * 1.5 * Math.sin(q * Math.PI), -4); knight.rotation.y = Math.PI / 2; armsUp(knight, 2.6 - q * 2); knight.updateMatrixWorld(true);
+        kSword.position.copy(new THREE.Vector3(0, 3.3, 0.6).applyMatrix4(knight.matrixWorld)); kSword.rotation.set(0, 0, -0.5 - q * 1.8); dragon.rotation.z = q > 0.8 ? 0.3 : 0; dHead.rotation.z = q > 0.8 ? -0.6 : 0;
+        camera.position.set(896, 3.5, 6); camera.lookAt(899, 3.5, -5); }
+      else { king.visible = true; king.position.set(1100, 9, -6.5); face(king, 'happy'); armsUp(king, 2.6); crowdAt(Math.PI, ['happy']); crowd.forEach((p, i) => { p.position.set(1094 + (i % 5) * 2.6, 0, 2 + Math.floor(i / 5) * 2); armsUp(p, 2.3 + Math.sin(t * 6 + i) * 0.3); });
+        camera.position.set(1100, 4, 14); camera.lookAt(1100, 7, -6); } }
+  }
+  return E.snap({});
+};
+window.ready = true;
+</script></body></html>

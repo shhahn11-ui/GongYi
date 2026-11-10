@@ -1,0 +1,122 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head><body>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script>
+<script type="module">
+import { THREE, setup, mat, box, walk, idle, armsUp, hero as mkHero, crowdPerson, person, buildTown, textCanvas, textTex, plane, ease, lerp, rnd, FONT, setFace } from '/lib.js';
+const E = setup(), { scene, camera } = E;
+const town = buildTown(scene);
+const cut = (u, d=1.4) => Math.floor(u / d);
+const mountain = new THREE.Mesh(new THREE.ConeGeometry(40, 45, 7), mat(0x5a6a5a)); mountain.position.set(130, 0, -10); scene.add(mountain);
+const hill = new THREE.Mesh(new THREE.SphereGeometry(14, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x4a9a45)); hill.scale.y = 0.3; hill.position.set(-50, 0, 0); scene.add(hill);
+// ---------- dragon with a drawable face ----------
+function dragonFaceTex(kind){ const {g, t} = textCanvas(256, 192); g.fillStyle = '#3f9a52'; g.fillRect(0, 0, 256, 192); const K = '#102010'; g.fillStyle = K; g.strokeStyle = K; g.lineCap = 'round';
+  if (kind === 'sleep'){ g.lineWidth = 10; for (const x of [70, 186]){ g.beginPath(); g.moveTo(x - 26, 70); g.lineTo(x + 26, 70); g.stroke(); } }
+  else if (kind === 'happy' || kind === 'blush'){ g.lineWidth = 10; for (const x of [70, 186]){ g.beginPath(); g.arc(x, 80, 24, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } if (kind === 'blush'){ g.fillStyle = 'rgba(255,120,140,.8)'; g.fillRect(24, 96, 50, 22); g.fillRect(182, 96, 50, 22); g.fillStyle = K; } }
+  else if (kind === 'wink'){ g.fillStyle = '#fff6c0'; g.fillRect(48, 48, 44, 44); g.fillStyle = K; g.fillRect(62, 56, 18, 30); g.lineWidth = 10; g.beginPath(); g.arc(186, 80, 24, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+  else { g.fillStyle = '#fff6c0'; g.fillRect(44, 44, 52, 48); g.fillRect(160, 44, 52, 48); g.fillStyle = K; g.fillRect(62, 52, 18, 34); g.fillRect(178, 52, 18, 34); }
+  g.fillStyle = K; g.fillRect(100, 128, 14, 10); g.fillRect(142, 128, 14, 10);
+  g.lineWidth = 8; g.beginPath(); if (kind === 'sad'){ g.arc(128, 186, 30, Math.PI * 1.2, Math.PI * 1.8); } else { g.moveTo(80, 160); g.quadraticCurveTo(128, kind === 'happy' || kind === 'blush' || kind === 'wink' ? 186 : 166, 176, 160); } g.stroke();
+  t.needsUpdate = true; return t; }
+const DF = {}; ['normal', 'sleep', 'happy', 'blush', 'wink', 'sad'].forEach(k => DF[k] = dragonFaceTex(k));
+function makeDragon(fake){
+  const g = new THREE.Group(); const C = fake ? 0x8a6a4a : 0x3f9a52, B = fake ? 0x6a5a4a : 0x9ad08a;
+  const body = box(5, 3.6, 4, C); body.position.set(0, 2.6, 0); const belly = box(3.2, 2.6, 0.2, B); belly.position.set(0, 2.4, 2.05);
+  const neck = box(1.8, 3, 1.8, C); neck.position.set(0, 5, 1.2); const head = box(3, 2.4, 2.6, C); head.position.set(0, 7, 2.0);
+  const facePl = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 2.2), new THREE.MeshLambertMaterial({map: fake ? null : DF.normal, color: fake ? 0x9a9aa2 : 0xffffff})); facePl.position.set(0, 7, 3.31);
+  g.add(body, belly, neck, head, facePl);
+  if (fake){ head.material = mat(0x9a9aa2); const handle = box(0.3, 0.3, 1.4, 0x333333); handle.position.set(1.7, 7.4, 2); g.add(handle);
+    for (const x of [-0.7, 0.7]){ const b = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.12, 12), new THREE.MeshBasicMaterial({color:0xffe070})); b.rotation.x = Math.PI / 2; b.position.set(x, 7.4, 3.35); g.add(b); }
+    for (let i=0;i<3;i++){ const br = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 1.4, 10), mat(0x7a5a3a)); br.position.set(-1.6 + i * 1.6, 0.7, 1.6); g.add(br); } }
+  for (const x of [-0.9, 0.9]){ const h = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.2, 6), mat(fake ? 0x5a3a20 : 0xf0e0b0)); h.position.set(x, 8.7, 1.6); g.add(h); }
+  const wings = []; for (const s of [-1, 1]){ const p = new THREE.Group(); p.position.set(s * 2.4, 4, -0.5); const w = fake ? box(5, 0.2, 0.6, 0xc8a050) : new THREE.Mesh(new THREE.PlaneGeometry(5, 3), mat(0x2f7a40, {side:THREE.DoubleSide}));
+    w.position.set(s * 2.4, 1, 0); if (!fake) w.rotation.y = Math.PI / 2 * 0; p.add(w); if (fake){ for (let k=0;k<8;k++){ const bb = box(0.12, 1.2, 0.12, 0xd8b060); bb.position.set(s * (2.6 + k * 0.28), 0.4, 0); p.add(bb); } } g.add(p); wings.push([p, s]); }
+  const tail = box(0.9, 0.9, 5, C); tail.position.set(0, 1.2, -4.2); g.add(tail);
+  for (const [x, z] of [[-1.6, 1.4], [1.6, 1.4], [-1.6, -1.2], [1.6, -1.2]]){ const l = box(1.1, 1.2, 1.1, C); l.position.set(x, 0.6, z); g.add(l); }
+  const blush = []; g.userData = {facePl, wings, head, neck}; scene.add(g); return g; }
+const dragon = makeDragon(false), fakeD = makeDragon(true);
+const dface = k => { dragon.userData.facePl.material.map = DF[k]; dragon.userData.facePl.material.needsUpdate = true; };
+const suitcase = box(1.6, 1.1, 0.5, 0x8a3a2a); scene.add(suitcase); const hat = new THREE.Group(); const hb = box(2.2, 0.15, 2.2, 0xe8d090), ht = box(1.4, 0.7, 1.4, 0xe8d090); ht.position.y = 0.4; hat.add(hb, ht); scene.add(hat);
+// ---------- monsters ----------
+const monsters = []; for (let i=0;i<10;i++){ const g = new THREE.Group(); const b = box(1.6, 1.8, 1.4, 0x4a2a6a); b.position.y = 1.1; g.add(b);
+  for (const x of [-0.35, 0.35]){ const e = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.05), new THREE.MeshBasicMaterial({color:0xffe040})); e.position.set(x, 1.5, 0.72); g.add(e); const hn = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.6, 5), mat(0xd8d0c0)); hn.position.set(x, 2.25, 0); g.add(hn); }
+  const mo = box(0.8, 0.12, 0.05, 0x111111); mo.position.set(0, 0.9, 0.72); g.add(mo); g.userData.mouth = mo; scene.add(g); monsters.push([g, rnd() * 6]); }
+// ---------- audition ----------
+const stage = box(8, 1, 4, 0x8a5a3a); stage.position.set(0, 0.5, -3.6); scene.add(stage);
+const banner = plane(6, 1.3, textTex(['수호자 오디션'], {w:512, h:110, bg:'#b03030', fg:'#fff', size:72})); banner.position.set(0, 5.4, -5.4); scene.add(banner);
+const knight = person({shirt:0x9aa0aa, pants:0x6a6a72, hair:0x9aa0aa}); const helm = box(1, 0.5, 1, 0x9aa0aa); helm.position.y = 3.0; knight.add(helm); scene.add(knight);
+const sword = new THREE.Group(); const bl = box(0.2, 2.4, 0.08, 0xd8dce4); bl.position.y = 1.4; const gd = box(0.8, 0.15, 0.2, 0xb08a30); gd.position.y = 0.2; sword.add(bl, gd); scene.add(sword);
+const wizard = person({shirt:0x3a3a9a, pants:0x2a2a5a, hair:0xd8d8d8}); const what = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 8), mat(0x3a3a9a)); what.position.y = 3.6; wizard.add(what); const beard = box(0.8, 0.9, 0.2, 0xe8e8e8); beard.position.set(0, 1.95, 0.5); wizard.add(beard); scene.add(wizard);
+const chicken = new THREE.Group(); const cb = box(0.9, 0.8, 1.1, 0xffffff); cb.position.y = 0.7; const ch = box(0.5, 0.5, 0.5, 0xffffff); ch.position.set(0, 1.3, 0.5); const cm = box(0.12, 0.25, 0.35, 0xe02020); cm.position.set(0, 1.65, 0.5); const ck = box(0.2, 0.12, 0.25, 0xf0b020); ck.position.set(0, 1.25, 0.85);
+chicken.add(cb, ch, cm, ck); for (const x of [-0.2, 0.2]){ const l = box(0.08, 0.4, 0.08, 0xf0b020); l.position.set(x, 0.2, 0); chicken.add(l); } scene.add(chicken);
+const puffs = []; for (let i=0;i<10;i++){ const p = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35, 0), new THREE.MeshLambertMaterial({color:0x5a5a5a, flatShading:true})); scene.add(p); puffs.push([p, rnd() * 6]); }
+// ---------- people ----------
+const harin = person({shirt:0xf08ab0, pants:0x4a3a6a, hair:0x3a2414, scale:0.85}); for (const x of [-0.45, 0.45]){ const br = box(0.22, 0.9, 0.22, 0x3a2414); br.position.set(x, 2.1, -0.2); harin.add(br); } scene.add(harin);
+const crowd = []; for (let i=0;i<10;i++){ const p = crowdPerson(i, 0.85); scene.add(p); crowd.push(p); }
+const lantern = new THREE.PointLight(0xffc070, 0, 12, 1.4); scene.add(lantern); const lanM = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.3), new THREE.MeshBasicMaterial({color:0xffd890})); scene.add(lanM);
+const zzz = plane(1.6, 1.0, textTex(['Z z z'], {w:256, h:128, bg:'rgba(0,0,0,0)', fg:'#ffffff', size:80})); zzz.material.transparent = true; scene.add(zzz);
+
+const people = [harin, knight, wizard, ...crowd];
+window.renderAt = (t) => {
+  const {name, u, len} = E.shot(t); const c = cut(u);
+  E.sky(1); E.placeSun(1.1); town.setNight(0); scene.fog.far = 220; E.hemi.intensity = 1.0;
+  people.forEach(p => { p.visible = false; idle(p); p.rotation.set(0, 0, 0); p.position.y = 0; setFace(p, 'neutral'); });
+  [sword, chicken, suitcase, hat, lanM, zzz].forEach(o => o.visible = false); puffs.forEach(p => p[0].visible = false); monsters.forEach(([m]) => m.visible = false); lantern.intensity = 0;
+  stage.visible = banner.visible = false; fakeD.visible = false; dragon.visible = true;
+  dragon.position.set(-50, 1.6, 0); dragon.rotation.set(0, Math.PI / 2, 0); dface('normal'); dragon.userData.wings.forEach(([w, s]) => w.rotation.z = s * 0.3);
+  const crowdAt = (x0, faces, ry=-Math.PI / 2) => crowd.forEach((p, i) => { p.visible = true; p.position.set(x0 + (i % 5) * 1.6, 0, i < 5 ? -1.2 : 1.2); p.rotation.y = ry; setFace(p, faces[i % faces.length]); });
+  const night = () => { E.sky(0); E.placeSun(-1); town.setNight(1); E.hemi.intensity = 0.95; };
+  if (name === 'A'){
+    if (c === 0){ crowdAt(-20, ['happy']); crowd.forEach((p, i) => { p.rotation.y = i % 2 ? 0.5 : -0.5; walk(p, t + i, 0.4, 0.3); }); camera.position.set(10, 4, 0.5); camera.lookAt(-40, 6, 0); }
+    else { dface('sleep'); zzz.visible = true; zzz.position.set(-44, 10 + Math.sin(t * 2) * 0.3, 0); zzz.rotation.y = Math.PI / 2; camera.position.set(-38, 7.5, 3); camera.lookAt(-47, 8.5, 0); }
+  } else if (name === 'A2'){
+    monsters.forEach(([m, ph], i) => { m.visible = true; const k = Math.min(1, u / 1.6); m.position.set(95 + (i % 5) * 2.2, 0, -6 + Math.floor(i / 5) * 3); m.rotation.y = k < 0.6 ? -Math.PI / 2 : Math.PI / 2; m.position.x += k > 0.6 ? (k - 0.6) * 8 : 0; m.rotation.z = Math.sin(t * 30 + ph) * 0.05; });
+    camera.position.set(88, 2.6, 6); camera.lookAt(100, 2.4, -3);
+  } else if (name === 'B' || name === 'B2'){
+    crowdAt(-38, ['neutral', 'happy']); crowd.forEach(p => p.userData.head.rotation.x = -0.5);
+    if (name === 'B'){ dface('normal'); camera.position.set(-27, 5, 2.4); camera.lookAt(-47, 7, 0); }
+    else { dface('happy'); hat.visible = true; hat.position.set(-48.0, 10.2, 0); suitcase.visible = true; suitcase.position.set(-46, 2.2, 2.6); camera.position.set(-41, 8, 0.6); camera.lookAt(-47, 8, 0); }
+  } else if (name === 'C'){
+    crowd.forEach((p, i) => { p.visible = true; const a = t * 2 + i; p.position.set(-6 + (i % 5) * 2.6 + Math.sin(a) * 1.4, Math.abs(Math.sin(t * 10 + i)) * 0.3, (i < 5 ? -1 : 1) * 1.2 + Math.cos(a) * 0.8); p.rotation.y = a * 2; armsUp(p, 2.6); setFace(p, i % 2 ? 'shock' : 'sad'); });
+    camera.position.set(-12, 3, 0.4); camera.lookAt(0, 2, 0);
+  } else if (name === 'D' || name === 'D2'){
+    stage.visible = banner.visible = true; crowdAt(-3.6, ['neutral'], Math.PI); crowd.forEach((p, i) => p.position.set(-4 + (i % 5) * 2, 0, 1.4 + Math.floor(i / 5) * 1.6));
+    if (name === 'D'){ knight.visible = wizard.visible = true; knight.position.set(-2.5, 1, -3.6); wizard.position.set(0, 1, -3.6); chicken.visible = true; chicken.position.set(2.5, 1, -3.6);
+      camera.position.set(0, 3.5, 2.4 + u * 0.1); camera.lookAt(0, 3, -4); }
+    else { const k3 = Math.min(2, Math.floor(u / 1.35)), q = (u % 1.35) / 1.35;
+      if (k3 === 0){ knight.visible = true; knight.position.set(0, 1, -3.6); setFace(knight, q > 0.4 ? 'shock' : 'determined'); armsUp(knight, 2.6); sword.visible = true; sword.position.set(0 + q * 2, 4.4 + Math.sin(q * Math.PI) * 2 - q * 2, -3 + q * 3); sword.rotation.z = q * 9; }
+      else if (k3 === 1){ wizard.visible = true; wizard.position.set(0, 1, -3.6); setFace(wizard, q > 0.3 ? 'shock' : 'determined'); wizard.userData.arms[1].rotation.x = -1.8; if (q > 0.3){ beard.material.color.setHex(0x2a2a2a); puffs.forEach(([p, ph], i) => { p.visible = true; p.position.set(Math.sin(ph) * 0.5, 2.9 + ((q * 2 + ph) % 1) * 2, -3.0 + Math.cos(ph) * 0.3); }); } else beard.material.color.setHex(0xe8e8e8); }
+      else { chicken.visible = true; chicken.position.set(q * 10, 1 + Math.abs(Math.sin(q * 30)) * 0.3, -3.6 + q * 2); chicken.rotation.y = Math.PI / 2; }
+      camera.position.set(0, 3.2, 1.5); camera.lookAt(0, 2.6, -3.6); }
+  } else if (name === 'E' || name === 'E2' || name === 'F' || name === 'F2'){
+    night(); harin.visible = true; harin.position.set(-42, 1, 0.5); harin.rotation.y = -Math.PI / 2; lantern.intensity = 14; lantern.position.set(-42.5, 3, 1.2); lanM.visible = true; lanM.position.set(-42.6, 1.9, 1.0); harin.userData.arms[1].rotation.x = -0.8;
+    if (name === 'E'){ const x = lerp(-34, -42, ease(u / len)); harin.position.x = x; walk(harin, u, 0.6, 0.4); lantern.position.x = x - 0.5; lanM.position.x = x - 0.6; dface('normal'); camera.position.set(x + 6, 3, 2.5); camera.lookAt(-46, 5, 0); }
+    else if (name === 'E2'){ setFace(harin, 'shock'); harin.userData.head.rotation.x = -0.4; camera.position.set(-44.5, 3.4, 1.2); camera.lookAt(-42, 2.9, 0.5); }
+    else if (name === 'F'){ dface('blush'); camera.position.set(-40.5, 7.5, 0.5); camera.lookAt(-47, 8, 0); }
+    else { E.sky(1); E.placeSun(1.1); town.setNight(0); scene.background.setHex(0xd8b888); scene.fog.color.setHex(0xd8b888); E.hemi.color.setHex(0xffe0b0); E.hemi.intensity = 1.1; dface('sleep'); zzz.visible = true; zzz.position.set(-44, 10, 0); zzz.rotation.y = Math.PI / 2; harin.visible = false; lanM.visible = false; lantern.intensity = 0;
+      monsters.forEach(([m, ph], i) => { if (i > 4) return; m.visible = true; const q = (u / len); m.position.set(-28 + i * 1.8 - (q > 0.5 ? 0 : 0), 0, -1.5 + (i % 2) * 2.5); m.rotation.y = q < 0.5 ? -Math.PI / 2 : Math.PI / 2; m.position.x += q > 0.5 ? (q - 0.5) * 20 : 0; });
+      camera.position.set(-16, 4, 2.2); camera.lookAt(-36, 5, 0); }
+  } else if (['G', 'H', 'I', 'I2', 'J'].includes(name)){
+    night(); scene.background.setHex(0x1a0a20); dragon.visible = false; fakeD.visible = true; fakeD.position.set(42, 0, 0); fakeD.rotation.y = Math.PI / 2;
+    fakeD.userData.wings.forEach(([w, s], i) => w.rotation.z = s * (0.3 + Math.sin(t * 3 + i) * 0.1));
+    const fakeLight = new THREE.Vector3(48, 7, 0); lantern.intensity = name === 'G' ? 0 : 18; lantern.position.set(47, 8, 2);
+    harin.visible = true; harin.position.set(38, 0, 3.4); harin.rotation.y = Math.PI / 2; setFace(harin, name === 'J' ? 'happy' : 'determined'); if (name === 'J') armsUp(harin, 2.6);
+    monsters.forEach(([m, ph], i) => { m.visible = true; const row = Math.floor(i / 5), col = i % 5; let x;
+      if (name === 'G') x = lerp(100, 70, ease(u / len)) + row * 3; else if (name === 'J') x = 56 + row * 3 + u * 12; else x = 56 + row * 3;
+      m.position.set(x, Math.abs(Math.sin(t * 8 + ph)) * (name === 'H' ? 0 : 0.25), -4 + col * 2); m.rotation.y = name === 'J' ? Math.PI / 2 : -Math.PI / 2; m.userData.mouth.scale.set(1, name === 'J' || name === 'I' ? 4 : 1, 1); m.rotation.z = name === 'H' ? Math.sin(t * 25 + ph) * 0.06 : 0; });
+    if (name === 'G'){ camera.position.set(60, 3, 6); camera.lookAt(85, 3, 0); }
+    else if (name === 'H'){ camera.position.set(52, 2.2, 3); camera.lookAt(57, 1.8, 0); }
+    else if (name === 'I'){ camera.position.set(lerp(66, 62, ease(u / len)), 3, 2); camera.lookAt(42, 6, 0); }
+    else if (name === 'I2'){ if (c === 0){ camera.position.set(48, 7.6, 0.6); camera.lookAt(45, 7.3, 0); } else { camera.position.set(50, 5.5, 2.5); camera.lookAt(42.5, 6, 0); } }
+    else { camera.position.set(50, 4, 4); camera.lookAt(64, 2, 0); }
+  } else {
+    E.sky(name === 'K' ? 0.5 : 1, name === 'K' ? 1 : 0); E.placeSun(name === 'K' ? 0.15 : 0.6, 0, 0); fakeD.visible = true; fakeD.position.set(42, 0, -3.5); fakeD.rotation.y = Math.PI / 2;
+    dragon.visible = name !== 'K'; dragon.position.set(42, 1.6 - 1.6, 3.5); dragon.rotation.y = Math.PI / 2;
+    harin.visible = name !== 'K'; harin.position.set(49, 0, 4.5); harin.rotation.y = -Math.PI / 2 - 0.4; setFace(harin, 'happy');
+    if (name === 'K'){ camera.position.set(30, 3, 0.5); camera.lookAt(42, 5, -2); }
+    else if (name === 'K2'){ dface('happy'); const k = ease(u / 1.5); camera.position.set(lerp(64, 60, k), lerp(4, 5.5, k), 0); camera.lookAt(42, 5.5, 0); }
+    else if (name === 'L'){ dface('wink'); camera.position.set(48, 8, 3.6); camera.lookAt(43, 7.6, 3.5); }
+    else { dface('happy'); armsUp(harin, 2.4); const k = ease(u / len); camera.position.set(lerp(60, 80, k), lerp(5, 26, k), lerp(0, 14, k)); camera.lookAt(lerp(42, 30, k), 4, 0); }
+  }
+  return E.snap({});
+};
+window.ready = true;
+</script></body></html>

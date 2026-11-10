@@ -1,0 +1,7 @@
+node_modules/
+pipeline/models/
+pipeline/stories/
+pipeline/story_*.html
+*.mp4
+*.wav
+__pycache__/

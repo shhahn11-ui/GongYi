@@ -1,0 +1,1 @@
+{ "name": "shorts-pipeline", "private": true, "dependencies": { "three": "0.169.0" } }

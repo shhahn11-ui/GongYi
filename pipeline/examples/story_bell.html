@@ -1,0 +1,90 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head><body>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script>
+<script type="module">
+import { THREE, setup, mat, box, label, walk, idle, armsUp, crowdPerson, person, buildTown, buildRoom, ease, lerp, rnd, setFace } from '/lib.js';
+const E = setup(), { scene, camera } = E;
+const town = buildTown(scene);
+const cut = (u, d=1.4) => Math.floor(u / d);
+const GOLD = new THREE.MeshLambertMaterial({color:0xe8c040, emissive:0x3a2a00});
+function bell(scale=1, clapper=true){ const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.38, 0.5, 10, 1, true), GOLD); b.material.side = THREE.DoubleSide; b.position.y = -0.25; const top = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), GOLD); g.add(b, top);
+  if (clapper){ const c = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), mat(0x6a5a3a)); c.position.y = -0.48; g.add(c); } g.scale.setScalar(scale); return g; }
+function withBell(p){ const b = bell(); b.position.y = 3.75; p.add(b); const l = label(1.8, 0.6); l.position.y = 4.6; l.visible = false; p.add(l); p.userData.bell = b; p.userData.ding = l; return p; }
+const ring = (p, t, txt='딸랑!') => { p.userData.bell.rotation.z = Math.sin(t * 28) * 0.5; p.userData.ding.visible = true; p.userData.ding.userData.set(txt, '#ffd23a', 'rgba(40,20,0,.8)'); };
+const crowd = []; for (let i=0;i<10;i++){ const p = withBell(crowdPerson(i, 0.85)); scene.add(p); crowd.push(p); }
+const king = withBell(person({shirt:0xb03030, pants:0x3a2a2a, hair:0x6a4a2a})); const crown = box(1.0, 0.35, 1.0, 0xe8c030); crown.position.y = 3.2; king.add(crown); king.userData.bell.position.y = 4.05;
+const cape = box(1.3, 2.0, 0.15, 0x7a1a2a); cape.position.set(0, 1.6, -0.35); king.add(cape); scene.add(king);
+const princess = withBell(person({shirt:0xf0a0d0, pants:0xd080b0, hair:0xd8b060, scale:0.9})); const tiara = box(0.9, 0.18, 0.9, 0xe8e0ff); tiara.position.y = 3.15; princess.add(tiara);
+for (const x of [-0.45, 0.45]){ const h = box(0.25, 1.0, 0.3, 0xd8b060); h.position.set(x, 2.1, -0.15); princess.add(h); } scene.add(princess);
+const mirrorP = person({shirt:0xf0a0d0, pants:0xd080b0, hair:0xd8b060, scale:0.9}); const mb = bell(); mb.position.y = 3.75; mirrorP.add(mb); for (const x of [-0.45, 0.45]){ const h = box(0.25, 1.0, 0.3, 0xd8b060); h.position.set(x, 2.1, -0.15); mirrorP.add(h); } scene.add(mirrorP);
+// props
+const tallHair = box(0.9, 1.6, 0.9, 0x8a3ad8); scene.add(tallHair);
+const table = box(3, 0.15, 1.6, 0x8a5a3a); table.position.set(-10, 1.5, -1.5); scene.add(table); const tleg = box(0.2, 1.5, 0.2, 0x5a3a20); tleg.position.set(-10, 0.75, -1.5); scene.add(tleg);
+const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.4, 0.15, 12), mat(0xffffff)); dish.position.set(-10, 1.65, -1.2); scene.add(dish); const food = box(0.5, 0.25, 0.4, 0x6a8a2a); food.position.set(-10, 1.82, -1.2); scene.add(food);
+const balcony = box(4, 1.2, 2, 0xbcb4a0); balcony.position.set(0, 4.4, -7.5); scene.add(balcony);
+const confetti = []; for (let i=0;i<60;i++){ const c = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.12), new THREE.MeshBasicMaterial({color:[0xff5a5a, 0xffd23a, 0x5ac8ff, 0x8aff6a][i % 4], side:THREE.DoubleSide})); scene.add(c); confetti.push([c, rnd() * 16 - 8, rnd() * 6 - 3, rnd() * 10, rnd() * 6]); }
+// king's chamber
+const room = buildRoom(scene, 300);
+const bed = box(4.5, 1, 3, 0x9a2a3a); bed.position.set(302.5, 0.8, -3.5); scene.add(bed); const bedTop = box(4.6, 0.3, 3.1, 0xf4e8d8); bedTop.position.set(302.5, 1.45, -3.5); scene.add(bedTop);
+for (const [x, z] of [[300.4, -4.9], [304.6, -4.9], [300.4, -2.1], [304.6, -2.1]]){ const l = box(0.25, 0.6, 0.25, 0x5a3a20); l.position.set(x, 0.3, z); scene.add(l); }
+const chest = new THREE.Group(); const cbx = box(2.2, 1.0, 1.3, 0x6a4020); cbx.position.y = 0.5; chest.add(cbx); const lidG = new THREE.Group(); lidG.position.set(0, 1.0, -0.65); const lid = box(2.2, 0.3, 1.3, 0x7a4a24); lid.position.set(0, 0.15, 0.65); lidG.add(lid); chest.add(lidG);
+const band = box(2.25, 1.05, 0.12, 0xb08a30); band.position.set(0, 0.5, 0); chest.add(band); scene.add(chest);
+const pile = []; for (let i=0;i<40;i++){ const b = bell(0.7, false); b.position.set((rnd() - .5) * 1.8, 1.05 + rnd() * 0.25, (rnd() - .5) * 1.0); b.rotation.set(rnd() * 2, rnd() * 6, rnd() * 2); chest.add(b); pile.push(b); }
+const clappers = []; for (let i=0;i<14;i++){ const c = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4), mat(0x6a5a3a)); scene.add(c); clappers.push(c); }
+const broom = new THREE.Group(); const stick = box(0.08, 2.2, 0.08, 0x8a6a3a); stick.position.y = 1.1; const bristle = box(0.6, 0.4, 0.2, 0xd8b060); bristle.position.y = 0.1; broom.add(stick, bristle); scene.add(broom);
+const glow = new THREE.PointLight(0xffd870, 0, 8, 1.4); scene.add(glow);
+// mirror
+const mirrorF = new THREE.Group(); [[0, 4.5, 2.8, 0.25], [0, 0.3, 2.8, 0.25], [-1.3, 2.4, 0.25, 4.4], [1.3, 2.4, 0.25, 4.4]].forEach(([x, y, w, h]) => { const b = box(w, h, 0.2, 0xb08a30); b.position.set(x, y, 0); mirrorF.add(b); }); mirrorF.position.set(300, 0, 3.0); scene.add(mirrorF); const mirrorG = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 3.8), new THREE.MeshBasicMaterial({color:0x1a2030})); mirrorG.position.set(300, 2.4, 5.68); mirrorG.rotation.y = Math.PI; scene.add(mirrorG);
+
+const all = [...crowd, king, princess, mirrorP];
+window.renderAt = (t) => {
+  const {name, u, len} = E.shot(t); const c = cut(u);
+  E.sky(1); E.placeSun(1.1); town.setNight(0); E.hemi.intensity = 1.0; scene.fog.far = 160; room.light.intensity = 0; glow.intensity = 0;
+  all.forEach(p => { p.visible = false; idle(p); p.rotation.set(0, 0, 0); p.position.y = 0; if (p.userData.bell){ p.userData.bell.rotation.z = 0; p.userData.ding.visible = false; } if (p !== mirrorP) setFace(p, 'neutral'); });
+  [tallHair, chest, broom, balcony, mirrorF].forEach(o => o.visible = false); confetti.forEach(c => c[0].visible = false); clappers.forEach(c => c.visible = false); chest.visible = false;
+  const pair = (a, b, x) => { a.visible = b.visible = true; a.position.set(x, 0, -1.3); b.position.set(x, 0, 1.3); a.rotation.y = -0.4; b.rotation.y = Math.PI + 0.4; };
+  if (name === 'A'){
+    crowd.forEach((p, i) => { p.visible = true; const d = i % 2 ? 1 : -1; p.position.set(-12 + i * 2.6 + d * t * 0.5, 0, d * 1.3); p.rotation.y = d > 0 ? Math.PI / 2 : -Math.PI / 2; walk(p, t + i, 0.6, 0.4); });
+    if (u > 1.6) ring(crowd[4], t);
+    camera.position.set(-16 + u * 0.6, 3.2, 0.4); camera.lookAt(0, 3, 0);
+  } else if (name === 'B'){
+    const a = crowd[0], b = crowd[3]; pair(a, b, 0); setFace(a, 'happy'); setFace(b, 'blush'); tallHair.visible = true; b.updateMatrixWorld(true); tallHair.position.copy(new THREE.Vector3(0, 3.6, 0).applyMatrix4(b.matrixWorld));
+    if (u > 0.7) ring(a, t);
+    if (c === 0){ camera.position.set(-5, 3.2, 0.2); camera.lookAt(0, 3, 0); } else { camera.position.set(-2.4, 3.6, -1.6); camera.lookAt(0, 3.6, -1.3); }
+  } else if (name === 'B2'){
+    const a = crowd[1], b = crowd[5]; a.visible = b.visible = true; a.position.set(-10, 0, -0.1); a.rotation.y = Math.PI; b.position.set(-11.8, 0, -1.2); b.rotation.y = Math.PI / 2;
+    setFace(a, 'happy'); a.userData.arms[1].rotation.x = -1.4; setFace(b, u > 1.2 ? 'sad' : 'happy'); if (u > 0.6) ring(a, t, u > 1.4 ? '딸랑! 딸랑!' : '딸랑!');
+    camera.position.set(-7.5, 3.4, 1.8); camera.lookAt(-10.5, 2.4, -1);
+  } else if (name === 'C'){
+    crowd.forEach((p, i) => { if (i > 5) return; p.visible = true; p.position.set(-5 + i * 2, 0, i % 2 ? 1.2 : -1.2); p.rotation.y = i % 2 ? Math.PI + 0.4 : -0.4; setFace(p, ['angry', 'sad', 'smirk', 'shock', 'angry', 'sad'][i]); });
+    crowd[0].userData.arms[1].rotation.x = -1.6; crowd[2].userData.arms[0].rotation.x = -1.6;
+    camera.position.set(-10 + u * 0.8, 3.2, 0.4); camera.lookAt(0, 2.6, 0);
+  } else if (['D', 'E', 'E2', 'F'].includes(name)){
+    balcony.visible = true; king.visible = true; king.position.set(0, 5.0, -7.5); setFace(king, name === 'D' ? 'neutral' : 'happy');
+    crowd.forEach((p, i) => { p.visible = true; p.position.set(-5 + (i % 5) * 2.5, 0, -2 + Math.floor(i / 5) * 2.6); p.rotation.y = Math.PI; setFace(p, name === 'F' || name === 'E2' ? 'happy' : 'neutral'); p.userData.head.rotation.x = -0.35; if (name === 'F') armsUp(p, 2.3 + Math.sin(t * 7 + i) * 0.4); });
+    if (name === 'E' || name === 'E2'){ king.userData.arms[1].rotation.x = -2.2 + Math.sin(t * 3) * 0.2; }
+    if (name === 'D'){ const k = ease(u / len); camera.position.set(0, lerp(6, 8.6, k), lerp(4, -4.2, k)); camera.lookAt(0, lerp(7, 8.9, k), -7.5); }
+    else if (name === 'E'){ if (c === 0){ camera.position.set(0, 6.5, 2); camera.lookAt(0, 8, -7.5); } else { camera.position.set(0.8, 9.0, -5.2); camera.lookAt(0, 8.9, -7.5); } }
+    else if (name === 'E2'){ camera.position.set(-6, 3, 4.5); camera.lookAt(0, 5, -6); }
+    else { confetti.forEach(([m, x, z, y0, ph]) => { m.visible = true; m.position.set(x, 9 - ((t * 2 + y0) % 9), z); m.rotation.set(t * 3 + ph, t * 2, 0); }); camera.position.set(0, 4, 5.5); camera.lookAt(0, 4.5, -5); }
+  } else {
+    E.sky(name === 'K' || name === 'L' ? 0 : 1); room.light.intensity = name === 'K' || name === 'L' ? 2 : 6; E.hemi.intensity = name === 'K' || name === 'L' ? 0.4 : 0.9;
+    princess.visible = true; chest.visible = ['H', 'I', 'I2', 'J'].includes(name); chest.position.set(302.5, 0, -1.2);
+    if (name === 'G'){ princess.position.set(lerp(306, 303, ease(u / len)), 0, -0.6); princess.rotation.y = -Math.PI / 2; setFace(princess, 'happy'); broom.visible = true; princess.updateMatrixWorld(true);
+      broom.position.copy(new THREE.Vector3(0.8, 0, 0.8).applyMatrix4(princess.matrixWorld)); broom.rotation.z = Math.sin(t * 6) * 0.3; princess.userData.arms[1].rotation.x = -0.6;
+      camera.position.set(297, 3.2, 3.5); camera.lookAt(303, 2, -1.5); }
+    else if (name === 'H'){ princess.position.set(302.5, 0, 0.6); princess.rotation.set(0.5, Math.PI, 0); setFace(princess, 'shock'); princess.userData.arms.forEach(a => a.rotation.x = -1.5);
+      chest.position.z = lerp(-3.4, -1.2, ease(u / len)); camera.position.set(299, 2.6, 2.6); camera.lookAt(302.5, 1, -1.5); }
+    else if (name === 'I'){ princess.position.set(302.5, 0, 0.6); princess.rotation.y = Math.PI; setFace(princess, 'shock'); lidG.rotation.x = -ease(u / len) * 1.2; glow.intensity = 6 * ease(u / len); glow.position.set(302.5, 1.6, -1.2);
+      camera.position.set(305.6, 2.7, -0.4); camera.lookAt(302.5, 1.6, -0.4); }
+    else if (name === 'I2' || name === 'J'){ lidG.rotation.x = -1.9; glow.intensity = 10; glow.position.set(302.5, 2, -1.2); princess.position.set(302.5, 0, 0.6); princess.rotation.y = Math.PI; setFace(princess, 'shock');
+      if (name === 'I2'){ const k = ease(u / 1.4); camera.position.set(302.5, lerp(3.6, 3.0, k), lerp(0.4, -0.2, k)); camera.lookAt(302.5, 1.1, -1.2); }
+      else { clappers.forEach((cl, i) => { cl.visible = true; cl.position.set(301 + (i % 7) * 0.2, 0.08, -0.1 + Math.floor(i / 7) * 0.2); }); camera.position.set(300.6, 1.5, 0.9); camera.lookAt(301.6, 0.1, 0.1); } }
+    else { princess.position.set(300, 0, 1.0); princess.rotation.y = 0; mirrorF.visible = true; setFace(princess, name === 'L' ? 'determined' : 'sad'); mirrorP.visible = true; idle(mirrorP); mirrorP.position.set(300, 0, 5.0); mirrorP.rotation.y = Math.PI; setFace(mirrorP, name === 'L' ? 'determined' : 'sad');
+      mirrorG.visible = false; if (name === 'L'){ princess.userData.arms[1].rotation.x = -2.9; mirrorP.userData.arms[0].rotation.x = -2.9; }
+      if (name === 'K'){ const k = ease(u / len); camera.position.set(lerp(301.2, 300.7, k), 3.4, lerp(-1.6, -0.6, k)); camera.lookAt(300, 3.2, 5); }
+      else { camera.position.set(300.6, 3.7, -0.2); camera.lookAt(300, 3.9, 5); } }
+  }
+  return E.snap({});
+};
+window.ready = true;
+</script></body></html>
