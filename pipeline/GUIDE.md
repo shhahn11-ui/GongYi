@@ -11,6 +11,7 @@ Owner: 시형 (Instagram gongyi01). Style the owner liked: "백지 카드", "용
 - Format: a fantasy/everyday world with one absurd rule → 2–3 funny consequences (big facial expressions) →
   a turn (problem) → ONE clear twist that pays off the setup (understood instantly, funny or heart-warming, a little spooky is OK) →
   closing question to the viewer ("여러분이라면 …?").
+- Main character name: 지우 (owner request 2026-11-17; do NOT use 민준 anymore). Side characters may have other names.
 - Korean 해요체. First line is the hook ("이 세계에서는, …" / "이 마을은, …"). 40–60 s total, 14–22 lines, each line short (≤ ~3 s).
 - Avoid endings that come out of nowhere (the owner hated "계산하고 나갈 건가요?"). The twist must connect to earlier lines.
 - Save as `stories/<name>.json` (see `examples/*.json`):
