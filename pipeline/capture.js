@@ -15,6 +15,7 @@ server.listen(0, '127.0.0.1', async () => {
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const page = await b.newPage({ viewport: { width: 216, height: 384 } });
   page.on('console', m => console.log('page:', m.text()));
+  if (process.env.RES) await page.addInitScript(r => { const [w, h] = r.split('x'); window.RES_W = w; window.RES_H = h; window.HQ = 1; }, process.env.RES);
   await page.goto(`http://127.0.0.1:${port}/${process.env.PAGE || "scene.html"}`);
   await page.waitForFunction(() => window.ready === true);
   if (process.env.TIMES) await page.evaluate(x => { window.T = JSON.parse(x); }, process.env.TIMES);

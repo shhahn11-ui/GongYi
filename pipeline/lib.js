@@ -1,7 +1,7 @@
 // Shared engine for blocky "In this world" story Shorts
 import * as THREE from 'three';
 export { THREE };
-export const W = 540, H = 960;
+export const W = +(globalThis.RES_W||540), H = +(globalThis.RES_H||960);
 export const ease = x => { x = Math.min(1, Math.max(0, x)); return x*x*(3-2*x); };
 export const lerp = (a,b,u) => a + (b-a)*u;
 export const FONT = '"Noto Sans CJK KR","Noto Sans KR",sans-serif';
@@ -54,8 +54,14 @@ export function person({shirt=0x3b7ddd, pants=0x2b3346, hair=0x5a3a22, scale=1, 
     const ap = new THREE.Group(); ap.position.set(s*0.78, 2.0, 0); const a = box(0.45,1.05,0.45,shirt); a.position.y = -0.45; const hnd = box(0.4,0.25,0.4,skin); hnd.position.y = -1.05; ap.add(a, hnd); g.add(ap); arms.push(ap);
     const lp = new THREE.Group(); lp.position.set(s*0.28, 0.95, 0); const l = box(0.5,0.95,0.5,pants); l.position.y = -0.475; lp.add(l); g.add(lp); legs.push(lp);
   }
-  g.userData = {arms, legs, head}; g.scale.setScalar(scale); return g;
+  const lid = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.22), new THREE.MeshLambertMaterial({color:skin})); lid.position.set(0, 2.5, 0.452); lid.visible = false; g.add(lid);
+  g.userData = {arms, legs, head, lid, torso, seed: rnd() * 10}; g.scale.setScalar(scale); return g;
 }
+// subtle life: breathing, blinking, tiny head sway. call after pose/face each frame
+export function life(p, t, {blink=true, sway=1}={}){ const u = p.userData, s = u.seed || 0;
+  u.torso.scale.y = 1 + Math.sin(t * 2.2 + s) * 0.025; u.head.position.y = 2.45 + Math.sin(t * 2.2 + s) * 0.02;
+  u.head.rotation.z += Math.sin(t * 0.9 + s) * 0.04 * sway; u.head.rotation.x += Math.sin(t * 0.7 + s * 2) * 0.03 * sway;
+  if (u.lid){ const ph = (t + s) % 3.3; u.lid.visible = blink && ph < 0.12; u.lid.material.color.copy(u.head.material[0].color); u.lid.position.y = u.head.position.y + 0.05; u.lid.rotation.copy(u.head.rotation); } }
 export function walk(p, t, speed=1, amp=0.6){ const s = Math.sin(t*7*speed)*amp; p.userData.legs[0].rotation.x = s; p.userData.legs[1].rotation.x = -s; p.userData.arms[0].rotation.x = -s; p.userData.arms[1].rotation.x = s; }
 export function idle(p){ for (const x of [...p.userData.legs, ...p.userData.arms]) x.rotation.set(0,0,0); p.userData.head.rotation.set(0,0,0); }
 export function armsUp(p, a=2.6){ p.userData.arms[0].rotation.x = -a; p.userData.arms[1].rotation.x = -a; }
@@ -68,13 +74,15 @@ export function tree(big=1){ const t = new THREE.Group(); const tr = box(0.6*big
 // ---------- engine ----------
 export function setup(){
   const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
-  renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.setPixelRatio(1); renderer.setSize(W, H); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  if (globalThis.HQ){ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25; }
   document.body.appendChild(renderer.domElement);
   const scene = new THREE.Scene(); scene.background = new THREE.Color(); scene.fog = new THREE.Fog(0x070b1c, 40, 160);
   const camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 600);
   const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x4a5a3a, 0.9); scene.add(hemi);
-  const sunL = new THREE.DirectionalLight(0xfff1d0, 2.2); sunL.castShadow = true; sunL.shadow.mapSize.set(1024,1024);
+  const sunL = new THREE.DirectionalLight(0xfff1d0, 2.2); sunL.castShadow = true; sunL.shadow.mapSize.set(globalThis.HQ ? 2048 : 1024, globalThis.HQ ? 2048 : 1024); sunL.shadow.radius = 3; sunL.shadow.bias = -0.0005;
   Object.assign(sunL.shadow.camera, {left:-35,right:35,top:35,bottom:-35,near:1,far:160}); scene.add(sunL, sunL.target);
+  const fill = new THREE.DirectionalLight(0xc8dcff, globalThis.HQ ? 0.55 : 0); fill.position.set(-30, 20, 40); scene.add(fill);
   const sunBall = new THREE.Mesh(new THREE.SphereGeometry(9,16,12), new THREE.MeshBasicMaterial({color:0xffe08a, fog:false})); scene.add(sunBall);
   const sp = []; for (let i=0;i<900;i++){ const v = new THREE.Vector3(rnd()-.5, rnd()*.7+.03, rnd()-.5).normalize().multiplyScalar(300); sp.push(v.x,v.y,v.z); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp,3));
@@ -84,8 +92,8 @@ export function setup(){
     sky(day, dusk=0){ const c = NIGHT.clone().lerp(DAY, day); c.lerp(DUSK, dusk * (1 - Math.abs(day - .5) * 2)); scene.background.copy(c); scene.fog.color.copy(c);
       hemi.intensity = lerp(0.2, 1.0, day); hemi.color.set(day > .3 ? 0xbfe3ff : 0x4a5a9a); sunL.intensity = lerp(0, 2.3, day); stars.material.opacity = 1 - Math.min(1, day * 2.5); },
     placeSun(a, ox=0, oz=0){ const p = new THREE.Vector3(Math.cos(a)*150 + ox, Math.sin(a)*95, -15 + oz); sunBall.position.copy(p); sunL.position.copy(p).sub(new THREE.Vector3(ox,0,oz)).multiplyScalar(0.4).add(new THREE.Vector3(ox,0,oz)); sunL.target.position.set(ox,0,oz); sunBall.visible = p.y > -5; },
-    shot(t){ const s = T.shots; let k = 0; for (let i=0;i<s.length;i++) if (t >= s[i].t) k = i; return {name: s[k].name, u: t - s[k].t, len: (k+1 < s.length ? s[k+1].t : s[k].t + 6) - s[k].t}; },
-    snap(info={}){ renderer.render(scene, camera); return { img: renderer.domElement.toDataURL('image/jpeg', 0.92), ...info }; },
+    shot(t){ E.t = t; const s = T.shots; let k = 0; for (let i=0;i<s.length;i++) if (t >= s[i].t) k = i; return {name: s[k].name, u: t - s[k].t, len: (k+1 < s.length ? s[k+1].t : s[k].t + 6) - s[k].t}; },
+    snap(info={}){ if (globalThis.HQ && E.t !== undefined){ const t = E.t; camera.position.x += Math.sin(t * 1.3) * 0.025; camera.position.y += Math.sin(t * 1.7 + 1) * 0.02; camera.rotation.z += Math.sin(t * 0.8) * 0.006; } renderer.render(scene, camera); return { img: renderer.domElement.toDataURL('image/jpeg', 0.92), ...info }; },
   };
   return E;
 }

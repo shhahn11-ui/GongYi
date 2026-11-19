@@ -29,8 +29,11 @@ Owner: 시형 (Instagram gongyi01). Style the owner liked: "백지 카드", "용
 - Test: `./teststory.sh <name>` then LOOK at `stories/<name>/st/grid.jpg` (Read tool). Fix any frame where a head/wall blocks the camera,
   the subject is off-screen, or it is too dark. Repeat until every frame clearly shows its line.
 
-## 3. Render
-    NOSFX=1 ONEWORD=1 ./renderstory.sh <name>      # ~6–8 min each on 2 cores; run the 3 one after another
+## 3. Render (HQ, owner asked for higher quality 2026-11-19)
+    RES=1080x1920 HQ=1 NOSFX=1 ONEWORD=1 ./renderstory.sh <name>   # native 1080p, ACES tone mapping, soft shadows, fill light,
+                                                                    # subtle camera drift, vignette, plucked melody over pads (~15 min each)
+- In the HTML: call `life(p, t)` for every visible person at the end of renderAt (breathing, blinking, head sway), and move the camera
+  with a smooth dolly in every shot (no static cameras). Test with `RES=1080x1920 ./teststory.sh <name>`.
 - Output: `stories/<name>/<title>.mp4`. Check the printed `tail rms` (audio present) and look at `python3 chkgrid.py stories/<name>` → `stories/<name>/chkgrid.jpg`.
 
 ## 4. Host the files (public raw URL needed by Instagram)

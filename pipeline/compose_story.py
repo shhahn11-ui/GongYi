@@ -119,9 +119,16 @@ def novel(im, t):
     d.line([VW / 2 - 60, 160, VW / 2 + 60, 160], fill=(150, 130, 100), width=2)
     pg = int(t / 4) + 1; d.text((VW / 2, VH - 100), f"— {pg} —", font=fSmall, fill=(150, 135, 110), anchor="mm")
     return im
+HQV = None
+if os.environ.get('HQ') == '1':
+    yy, xx = np.mgrid[0:VH, 0:VW]; rr = np.sqrt(((xx - VW / 2) / (VW * .7)) ** 2 + ((yy - VH / 2) / (VH * .7)) ** 2)
+    HQV = (np.clip(1.12 - rr * .38, .7, 1.04)[..., None] * np.array([1.02, 1.0, .97])).astype(np.float32)
 def frame(i):
     m = meta[i]; t = m["t"]
-    im = Image.open(f"{FR}/f{i:04d}.png").convert("RGB").resize((VW, VH), Image.LANCZOS).convert("RGBA")
+    im = Image.open(f"{FR}/f{i:04d}.png").convert("RGB")
+    if im.size != (VW, VH): im = im.resize((VW, VH), Image.LANCZOS)
+    if HQV is not None: im = Image.fromarray((np.asarray(im).astype(np.float32) * HQV).clip(0, 255).astype(np.uint8))
+    im = im.convert("RGBA")
     ov = Image.new("RGBA", (VW, VH), (0, 0, 0, 0))
     if "week" in m: calendar(ov, m["week"])
     if m.get("hud"): hud(ov, m["hud"])
@@ -188,6 +195,15 @@ while MUSIC and k * 4 < turn:
 k = 0
 while MUSIC and turn + k * 4 < n / FPS:
     pad(turn + k * 4, max(1.7, min(4.6, n / FPS - turn - k * 4 + .2)), [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 56, 59]][k % 4], .02); k += 1
+def pluck(t0, m_, v):
+    x = tt(.9); add(t0, v * (np.sin(2 * np.pi * hz(m_) * x) + .25 * np.sin(2 * np.pi * hz(m_) * 2 * x)) * np.exp(-x / .28) * np.minimum(1, x / .005))
+if MUSIC and os.environ.get('HQ') == '1':
+    CH1 = [[72, 76, 79], [72, 77, 81], [74, 79, 83], [69, 72, 76]]; CH2 = [[69, 72, 76], [65, 69, 72], [67, 71, 74], [64, 68, 71]]
+    j = 0; t0 = .2
+    while t0 < n / FPS - 1.2:
+        ch = (CH1 if t0 < turn else CH2)[int((t0 if t0 < turn else t0 - turn) // 4) % 4]
+        if not (rv - .6 < t0 < rv + .9): pluck(t0, ch[[0, 1, 2, 1][j % 4]] - (0 if t0 < turn else 12) * (j % 8 == 7), .028 if t0 < turn else .022)
+        t0 += .5; j += 1
 t0 = turn + 4
 while MUSIC and t0 < rv - .3:
     x = tt(.12); add(t0, .1 * np.sin(2 * np.pi * 55 * x) * np.exp(-x / .05)); t0 += .55
