@@ -11,6 +11,8 @@ Owner: 시형 (Instagram gongyi01). Style the owner liked: "백지 카드", "용
 - Format: a fantasy/everyday world with one absurd rule → 2–3 funny consequences (big facial expressions) →
   a turn (problem) → ONE clear twist that pays off the setup (understood instantly, funny or heart-warming, a little spooky is OK) →
   closing question to the viewer ("여러분이라면 …?").
+- Owner request 2026-11-20: also try stories built on what's topical in Korea right now (수능·시험 문제, 요즘 화제·트렌드 — no politics, no real people).
+  First test: 수능 듣기평가에 소리 내면 굳는 세상 (posted 2026-11-20, day after the 2027 수능). If it does well (check perf.md), make topical stories the main line.
 - Main character name: 지우 (owner request 2026-11-17; do NOT use 민준 anymore). Side characters may have other names.
 - Korean 해요체. First line is the hook ("이 세계에서는, …" / "이 마을은, …"). 40–60 s total, 14–22 lines, each line short (≤ ~3 s).
 - Avoid endings that come out of nowhere (the owner hated "계산하고 나갈 건가요?"). The twist must connect to earlier lines.
